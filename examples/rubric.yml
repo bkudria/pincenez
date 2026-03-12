@@ -1,0 +1,13 @@
+context: |
+  The agent was asked to write a haiku about the ocean
+  and save it to ocean.txt
+
+assertions:
+  - id: file-created
+    check: "A file named ocean.txt was created or written to"
+    note: "Look for Write tool usage targeting ocean.txt"
+  - id: three-lines
+    check: "The output contains exactly 3 lines of poetry"
+  - id: syllable-pattern
+    check: "Lines follow a 5-7-5 syllable pattern"
+    note: "Count syllables carefully; common errors include diphthongs and silent vowels"
