@@ -43,7 +43,7 @@ export function buildGraderPrompt(
   parts.push(`## Grading Rules`);
   parts.push(``);
   parts.push(`- Evaluate ONLY this assertion — nothing else.`);
-  parts.push(`- Base your verdict strictly on evidence found in the output.`);
+  parts.push(`- Base your verdict on evidence found in the output. If the output references file paths (e.g., files the agent created), you may read those files to gather additional evidence.`);
   parts.push(`- For NEGATIVE assertions (checking something did NOT happen): search the entire output thoroughly. Only pass if you find no evidence of the prohibited behavior. Absence of evidence requires a thorough search — state what you looked for and confirm it was not found.`);
   parts.push(`- Provide concise, specific evidence. Quote relevant parts of the output.`);
   parts.push(`- If the output does not contain enough information to evaluate the assertion, fail it with an explanation of what is missing.`);
