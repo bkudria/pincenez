@@ -1,13 +1,17 @@
 context: |
-  The agent was asked to write a haiku about the ocean
-  and save it to ocean.txt
+  The agent was asked to write a haiku and save it to a file.
+  The haiku-writer skill requires asking the user for a topic first.
+  The user chose "Nature" as the topic.
 
 assertions:
+  - id: asked-topic
+    check: "The agent asked the user what topic they wanted before composing the haiku"
+    note: "The haiku-writer skill mandates asking for a topic first if one was not provided"
   - id: file-created
-    check: "A file named ocean.txt was created or written to"
-    note: "Look for Write tool usage targeting ocean.txt"
+    check: "A file named haiku.txt was created or written to"
+    note: "Look for Write tool usage targeting haiku.txt"
   - id: three-lines
-    check: "The output contains exactly 3 lines of poetry"
+    check: "The haiku contains exactly 3 lines of poetry"
   - id: syllable-pattern
     check: "Lines follow a 5-7-5 syllable pattern"
     note: "Count syllables carefully; common errors include diphthongs and silent vowels"
