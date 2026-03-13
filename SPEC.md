@@ -1,9 +1,9 @@
-# judge — Specification
+# pincenez — Specification
 
 ## Synopsis
 
 ```
-judge [options] <rubric.yml> [output]
+pincenez [options] <rubric.yml> [output]
 ```
 
 Grade a single output against a rubric using an LLM judge. Returns structured evaluation YAML.
@@ -11,7 +11,7 @@ Grade a single output against a rubric using an LLM judge. Returns structured ev
 ## Core Operation
 
 ```
-judge <rubric> <output> → grading YAML (stdout)
+pincenez <rubric> <output> → grading YAML (stdout)
 ```
 
 The fundamental primitive: one rubric, one output, one evaluation. Everything else composes on top.
@@ -63,7 +63,7 @@ assertions:
 
 ## Output Schema
 
-Judge writes grading YAML to stdout:
+Pincenez writes grading YAML to stdout:
 
 ```yaml
 assertions:
@@ -84,13 +84,13 @@ pass_rate: 0.67
 - Each assertion has `id`, `check` (echoed from rubric), `pass` (boolean), and `evidence` (judge's reasoning)
 - `pass_rate` is `assertions_passed / assertions_total`
 - No summary field — the assertions speak for themselves
-- Exit code 0 means judge ran successfully, regardless of assertion results. Parse output for pass/fail.
+- Exit code 0 means pincenez ran successfully, regardless of assertion results. Parse output for pass/fail.
 - YAML output is consistent with YAML input (rubric) — same format throughout the pipeline
 
 ## CLI Interface
 
 ```
-Usage: judge [options] <rubric.yml> [output]
+Usage: pincenez [options] <rubric.yml> [output]
 
 Grade an output against a rubric using an LLM judge.
 
@@ -100,7 +100,7 @@ Arguments:
                       If omitted, reads from stdin (written to temp file)
 
 Options:
-  --model <model>     Judge model (default: claude-haiku-4-5)
+  --model <model>     LLM judge model (default: claude-haiku-4-5)
   --context <text>    Override or supplement the rubric's context field
   --verbose           Include full judge reasoning chain in output
   -h, --help          Show help
@@ -108,7 +108,7 @@ Options:
 
 ## Execution Model
 
-1. Judge reads the rubric YAML and parses assertions
+1. Pincenez reads the rubric YAML and parses assertions
 2. If output is stdin, writes it to a temp file
 3. **For each assertion (in parallel):**
    a. Builds a grader prompt combining:
@@ -118,7 +118,7 @@ Options:
       - Path to the output file
    b. Invokes the LLM with **Read** tool access and **structured output** (function calling / JSON schema) to enforce the response shape: `{ pass: boolean, evidence: string }`
    c. The LLM reads the output file, reasons about the assertion, returns its verdict
-4. Judge collects all assertion results
+4. Pincenez collects all assertion results
 5. Computes `pass_rate`
 6. Assembles and writes the grading YAML to stdout
 
@@ -126,51 +126,51 @@ Options:
 
 - **One LLM call per assertion.** Each assertion is evaluated independently to avoid cross-contamination. Earlier verdicts cannot influence later ones.
 - **Parallel by default.** All assertion evaluations run concurrently. N assertions = N parallel LLM calls.
-- **LLM gets Read-only tool access.** The LLM reads the output file (or directory) to evaluate each assertion. Judge handles all output writing.
+- **LLM gets Read-only tool access.** The LLM reads the output file (or directory) to evaluate each assertion. Pincenez handles all output writing.
 - **Structured output.** Results are extracted via function calling / JSON schema, not free-text parsing. Each call returns `{ pass: boolean, evidence: string }`.
-- **Exit code = operational success.** Exit 0 if judge ran successfully. Exit non-zero only for errors (bad rubric, API failure, etc.). Assertion failures are data, not errors.
+- **Exit code = operational success.** Exit 0 if pincenez ran successfully. Exit non-zero only for errors (bad rubric, API failure, etc.). Assertion failures are data, not errors.
 - **Default model: claude-haiku-4-5.** Cheapest and fastest. Adequate for most binary assertion checks. Use `--model` globally or `model` per-assertion for stronger models on nuanced assertions.
 
 ## Usage Examples
 
 ```bash
 # Grade a file against a rubric
-judge rubric.yml output.md
+pincenez rubric.yml output.md
 
 # Grade and save to file
-judge rubric.yml output.md > grading.yml
+pincenez rubric.yml output.md > grading.yml
 
-# Pipe from warren
-warren run session.yml | judge rubric.yml
+# Pipe from scuttlerun
+scuttlerun run session.yml | pincenez rubric.yml
 
 # Use a stronger model for all assertions
-judge rubric.yml output.md --model claude-sonnet-4-6
+pincenez rubric.yml output.md --model claude-sonnet-4-6
 
 # Or set model per-assertion in the rubric (overrides --model)
 
 # Inline context supplement
-judge rubric.yml output.md --context "This was a timed exercise with a 30-second limit"
+pincenez rubric.yml output.md --context "This was a timed exercise with a 30-second limit"
 
 # CI: check pass rate with yq
-judge rubric.yml output.md | yq -e '.pass_rate == 1.0'
+pincenez rubric.yml output.md | yq -e '.pass_rate == 1.0'
 ```
 
 ## Composition with Other Tools
 
 ### Standalone grading
 ```bash
-judge rubric.yml output.md > grading.yml
+pincenez rubric.yml output.md > grading.yml
 ```
 
 ### Paired evaluation (how skillcraft uses it)
 ```bash
 # Run both variants
-warren run with-skill.yml > with_skill/output.md
-warren run without-skill.yml > without_skill/output.md
+scuttlerun run with-skill.yml > with_skill/output.md
+scuttlerun run without-skill.yml > without_skill/output.md
 
 # Grade each independently (same rubric, different outputs)
-judge rubric.yml with_skill/output.md    > with_skill/grading.yml
-judge rubric.yml without_skill/output.md > without_skill/grading.yml
+pincenez rubric.yml with_skill/output.md    > with_skill/grading.yml
+pincenez rubric.yml without_skill/output.md > without_skill/grading.yml
 
 # Compute discrimination downstream (pure data, no LLM needed):
 # "assertion X passed for with_skill but failed for without_skill"
@@ -178,7 +178,7 @@ judge rubric.yml without_skill/output.md > without_skill/grading.yml
 
 ### CI quality gate
 ```bash
-warren run test-scenario.yml | judge rubric.yml | yq -e '.pass_rate >= 0.8'
+scuttlerun run test-scenario.yml | pincenez rubric.yml | yq -e '.pass_rate >= 0.8'
 ```
 
 ## Impact on Skillcraft
@@ -186,10 +186,10 @@ warren run test-scenario.yml | judge rubric.yml | yq -e '.pass_rate >= 0.8'
 | Current (inlined in run-eval.sh) | After extraction |
 |---|---|
 | `run-eval.sh` builds ~30-line grading prompt | `run-eval.sh` generates `rubric.yml` per scenario from `evals.yml` |
-| Embeds `grader.md` instructions in prompt | `judge` has built-in grader prompt |
-| Invokes `claude -p` with `--allowedTools Read,Write` | Invokes `judge rubric.yml output.md` |
-| Extracts JSON from Claude's envelope (`extract_claude_text`) | `judge` handles extraction, outputs clean YAML |
-| `grading.json` schema coupled to `grader.md` | Grading schema is `judge`'s published contract |
-| ~100 lines of `run_grader()` function | ~3-line `judge` call per variant |
+| Embeds `grader.md` instructions in prompt | `pincenez` has built-in grader prompt |
+| Invokes `claude -p` with `--allowedTools Read,Write` | Invokes `pincenez rubric.yml output.md` |
+| Extracts JSON from Claude's envelope (`extract_claude_text`) | `pincenez` handles extraction, outputs clean YAML |
+| `grading.json` schema coupled to `grader.md` | Grading schema is `pincenez`'s published contract |
+| ~100 lines of `run_grader()` function | ~3-line `pincenez` call per variant |
 | All assertions in one LLM call (cross-contamination risk) | One LLM call per assertion (independent, parallel) |
 | Discrimination computed during grading (LLM sees both) | Discrimination computed downstream from paired gradings (pure data) |

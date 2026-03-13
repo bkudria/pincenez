@@ -60,7 +60,7 @@ export async function gradeAssertion(
   const model = assertion.model ?? options.model ?? DEFAULT_MODEL;
   const prompt = buildGraderPrompt(assertion, outputPath, options.context);
 
-  // Prevent nested session errors (warren pattern)
+  // Prevent nested session errors
   delete process.env.CLAUDECODE;
 
   try {
