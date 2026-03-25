@@ -72,13 +72,12 @@ export async function gradeAssertion(
         model,
         tools: ["Read"],
         maxTurns: 5,
-        permissionMode: "bypassPermissions" as any,
+        permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
-      } as any,
+      },
     })) {
-      const msg = message as Record<string, unknown>;
-      if (msg.type === "result" && typeof msg.result === "string") {
-        resultText = msg.result;
+      if (message.type === "result" && "result" in message && typeof message.result === "string") {
+        resultText = message.result;
       }
     }
 

@@ -33,7 +33,7 @@ describe("run", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     written = "";
-    writeSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk: any) => {
+    writeSpy = vi.spyOn(process.stdout, "write").mockImplementation((chunk: string | Uint8Array) => {
       written += typeof chunk === "string" ? chunk : chunk.toString();
       return true;
     });

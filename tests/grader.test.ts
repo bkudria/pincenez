@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { extractVerdict, gradeAssertion } from "../src/grader.js";
 import type { Assertion } from "../src/config.js";
+import type { Query, SDKMessage, SDKResultSuccess } from "@anthropic-ai/claude-agent-sdk";
 
 // Mock the Agent SDK
 vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
@@ -84,13 +85,31 @@ describe("extractVerdict", () => {
   });
 });
 
-// Helper: create an async iterable from an array of messages
-function asyncMessages(msgs: unknown[]): AsyncIterable<unknown> {
+function resultMessage(result: string): SDKResultSuccess {
+  return {
+    type: "result",
+    subtype: "success",
+    result,
+    duration_ms: 0,
+    duration_api_ms: 0,
+    is_error: false,
+    num_turns: 1,
+    stop_reason: "end_turn",
+    total_cost_usd: 0,
+    usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, server_tool_use: null },
+    modelUsage: {},
+    permission_denials: [],
+    uuid: "test-uuid" as SDKResultSuccess["uuid"],
+    session_id: "test-session",
+  };
+}
+
+function asyncMessages(msgs: SDKMessage[]): Query {
   return {
     async *[Symbol.asyncIterator]() {
       for (const m of msgs) yield m;
     },
-  };
+  } as unknown as Query;
 }
 
 describe("gradeAssertion", () => {
@@ -101,8 +120,8 @@ describe("gradeAssertion", () => {
   it("returns AssertionResult with pass/evidence on success", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
-        { type: "result", result: '```json\n{"pass": true, "evidence": "looks good"}\n```' },
-      ]) as any,
+        resultMessage('```json\n{"pass": true, "evidence": "looks good"}\n```'),
+      ]),
     );
 
     const result = await gradeAssertion(assertion, "/tmp/out.md");
@@ -117,8 +136,8 @@ describe("gradeAssertion", () => {
   it("uses assertion.model over options.model and default", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
-        { type: "result", result: '```json\n{"pass": true, "evidence": "ok"}\n```' },
-      ]) as any,
+        resultMessage('```json\n{"pass": true, "evidence": "ok"}\n```'),
+      ]),
     );
 
     await gradeAssertion(
@@ -137,8 +156,8 @@ describe("gradeAssertion", () => {
   it("uses options.model when assertion has no model", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
-        { type: "result", result: '```json\n{"pass": true, "evidence": "ok"}\n```' },
-      ]) as any,
+        resultMessage('```json\n{"pass": true, "evidence": "ok"}\n```'),
+      ]),
     );
 
     await gradeAssertion(assertion, "/tmp/out.md", { model: "options-model" });
@@ -153,8 +172,8 @@ describe("gradeAssertion", () => {
   it("falls back to default model", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
-        { type: "result", result: '```json\n{"pass": true, "evidence": "ok"}\n```' },
-      ]) as any,
+        resultMessage('```json\n{"pass": true, "evidence": "ok"}\n```'),
+      ]),
     );
 
     await gradeAssertion(assertion, "/tmp/out.md");
@@ -169,8 +188,8 @@ describe("gradeAssertion", () => {
   it("returns null pass when verdict extraction fails", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
-        { type: "result", result: "no json here at all" },
-      ]) as any,
+        resultMessage("no json here at all"),
+      ]),
     );
 
     const result = await gradeAssertion(assertion, "/tmp/out.md");
@@ -193,8 +212,8 @@ describe("gradeAssertion", () => {
 
     mockQuery.mockReturnValue(
       asyncMessages([
-        { type: "result", result: '```json\n{"pass": true, "evidence": "ok"}\n```' },
-      ]) as any,
+        resultMessage('```json\n{"pass": true, "evidence": "ok"}\n```'),
+      ]),
     );
 
     await gradeAssertion(assertion, "/tmp/out.md");

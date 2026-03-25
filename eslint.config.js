@@ -15,12 +15,6 @@ export default [
     },
   },
   {
-    files: ["tests/**/*.ts"],
-    rules: {
-      "@typescript-eslint/no-explicit-any": "off",
-    },
-  },
-  {
     ignores: ["dist/", "coverage/"],
   },
 ];
