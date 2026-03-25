@@ -1,0 +1,9 @@
+name: pincenez
+description: TypeScript CLI that grades LLM outputs against YAML rubrics using an LLM judge
+language: typescript
+profiles: [base]
+
+standards:
+  tests:
+    framework: vitest
+    directory: tests
