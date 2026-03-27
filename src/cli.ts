@@ -7,6 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { loadRubric } from "./config.js";
 import { run } from "./runner.js";
+import { runLint } from "./lint-runner.js";
 
 const HELP_TEXT = `
 Rubric Schema (YAML):
@@ -59,10 +60,102 @@ Examples:
   # Save results to file
   pincenez rubric.yml output.md > grading.yml
 
+  # Lint assertions for quality anti-patterns
+  pincenez lint rubric.yml
+
 Exit Codes:
   0   Ran successfully (regardless of assertion results)
   1   Rubric error (invalid YAML, missing fields)
   2   Runtime error (API failure, etc.)`;
+
+async function gradeAction(
+  rubricFile: string | undefined,
+  outputArg: string | undefined,
+  opts: { model?: string; context?: string; verbose?: boolean },
+  program: Command,
+) {
+  if (!rubricFile || rubricFile === "help") {
+    program.help();
+    return;
+  }
+
+  try {
+    const rubricPath = resolve(rubricFile);
+    const rubric = await loadRubric(rubricPath);
+
+    let outputPath: string;
+    let tempFile: string | undefined;
+
+    if (outputArg) {
+      outputPath = resolve(outputArg);
+    } else {
+      const stdinContent = await readStdin();
+      if (!stdinContent) {
+        process.stderr.write("[pincenez] Error: no output provided (pass a file or pipe to stdin)\n");
+        process.exit(1);
+      }
+      tempFile = join(tmpdir(), `pincenez-stdin-${process.pid}-${Date.now()}`);
+      await writeFile(tempFile, stdinContent, "utf8");
+      outputPath = tempFile;
+    }
+
+    try {
+      const { passRate } = await run(rubric, outputPath, {
+        model: opts.model,
+        context: opts.context,
+        verbose: opts.verbose,
+      });
+
+      if (opts.verbose) {
+        process.stderr.write(`[pincenez] Done: ${rubric.assertions.length} assertions, pass_rate=${passRate}\n`);
+      }
+    } finally {
+      if (tempFile) {
+        await unlink(tempFile).catch(() => {});
+      }
+    }
+  } catch (err) {
+    if (err instanceof Error && err.name === "ZodError") {
+      process.stderr.write(`[pincenez] Rubric error: ${err.message}\n`);
+      process.exit(1);
+    }
+    process.stderr.write(
+      `[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    process.exit(2);
+  }
+}
+
+async function lintAction(
+  rubricFile: string,
+  opts: { model?: string; context?: string; verbose?: boolean },
+) {
+  try {
+    const rubricPath = resolve(rubricFile);
+    const rubric = await loadRubric(rubricPath);
+
+    const { assertionsWithIssues } = await runLint(rubric, {
+      model: opts.model,
+      context: opts.context,
+      verbose: opts.verbose,
+    });
+
+    if (opts.verbose) {
+      process.stderr.write(
+        `[pincenez] Lint done: ${rubric.assertions.length} assertions, ${assertionsWithIssues} with issues\n`,
+      );
+    }
+  } catch (err) {
+    if (err instanceof Error && err.name === "ZodError") {
+      process.stderr.write(`[pincenez] Rubric error: ${err.message}\n`);
+      process.exit(1);
+    }
+    process.stderr.write(
+      `[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    process.exit(2);
+  }
+}
 
 async function main() {
   const program = new Command();
@@ -82,61 +175,17 @@ async function main() {
     .option("--verbose", "Include verbose output on stderr")
     .addHelpText("after", HELP_TEXT)
     .action(async (rubricFile: string | undefined, outputArg: string | undefined, opts) => {
-      if (!rubricFile || rubricFile === "help") {
-        program.help();
-        return; // unreachable, but satisfies TypeScript
-      }
+      await gradeAction(rubricFile, outputArg, opts, program);
+    });
 
-      try {
-        // Load and validate rubric
-        const rubricPath = resolve(rubricFile);
-        const rubric = await loadRubric(rubricPath);
-
-        // Resolve output path (file arg or stdin → temp file)
-        let outputPath: string;
-        let tempFile: string | undefined;
-
-        if (outputArg) {
-          outputPath = resolve(outputArg);
-        } else {
-          // Read stdin to temp file
-          const stdinContent = await readStdin();
-          if (!stdinContent) {
-            process.stderr.write("[pincenez] Error: no output provided (pass a file or pipe to stdin)\n");
-            process.exit(1);
-          }
-          tempFile = join(tmpdir(), `pincenez-stdin-${process.pid}-${Date.now()}`);
-          await writeFile(tempFile, stdinContent, "utf8");
-          outputPath = tempFile;
-        }
-
-        try {
-          // Run all assertions
-          const { passRate } = await run(rubric, outputPath, {
-            model: opts.model,
-            context: opts.context,
-            verbose: opts.verbose,
-          });
-
-          if (opts.verbose) {
-            process.stderr.write(`[pincenez] Done: ${rubric.assertions.length} assertions, pass_rate=${passRate}\n`);
-          }
-        } finally {
-          // Clean up temp file
-          if (tempFile) {
-            await unlink(tempFile).catch(() => {});
-          }
-        }
-      } catch (err) {
-        if (err instanceof Error && err.name === "ZodError") {
-          process.stderr.write(`[pincenez] Rubric error: ${err.message}\n`);
-          process.exit(1);
-        }
-        process.stderr.write(
-          `[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`,
-        );
-        process.exit(2);
-      }
+  program
+    .command("lint <rubric.yml>")
+    .description("Check assertion quality for common anti-patterns")
+    .option("--model <model>", "LLM model for lint analysis (default: claude-haiku-4-5)")
+    .option("--context <text>", "Scenario prompt (helps detect tautological assertions)")
+    .option("--verbose", "Include verbose output on stderr")
+    .action(async (rubricFile: string, opts) => {
+      await lintAction(rubricFile, opts);
     });
 
   await program.parseAsync(process.argv);
