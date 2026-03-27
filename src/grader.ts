@@ -9,40 +9,36 @@ export interface AssertionResult {
   evidence: string;
 }
 
+export interface Verdict {
+  pass: boolean;
+  evidence: string;
+}
+
 const DEFAULT_MODEL = "claude-haiku-4-5";
 
+const VERDICT_SCHEMA = {
+  type: "object" as const,
+  properties: {
+    pass: { type: "boolean" as const },
+    evidence: { type: "string" as const },
+  },
+  required: ["pass", "evidence"],
+  additionalProperties: false,
+};
+
 /**
- * Extract a JSON verdict from the LLM's response text.
- * Looks for a ```json code block containing {pass, evidence}.
+ * Parse and validate a verdict from the structured output JSON string.
  */
-export function extractVerdict(text: string): { pass: boolean; evidence: string } | null {
-  // Try to find a ```json block
-  const jsonBlockMatch = text.match(/```json\s*\n?([\s\S]*?)\n?\s*```/);
-  if (jsonBlockMatch) {
-    try {
-      const parsed = JSON.parse(jsonBlockMatch[1].trim());
-      if (typeof parsed.pass === "boolean" && typeof parsed.evidence === "string") {
-        return parsed;
-      }
-    } catch {
-      // Fall through to other strategies
+export function parseVerdict(text: string): Verdict | null {
+  try {
+    const parsed = JSON.parse(text);
+    if (typeof parsed.pass === "boolean" && typeof parsed.evidence === "string") {
+      return { pass: parsed.pass, evidence: parsed.evidence };
     }
+    return null;
+  } catch {
+    return null;
   }
-
-  // Try to find any JSON object with pass and evidence
-  const jsonMatch = text.match(/\{[^{}]*"pass"\s*:\s*(true|false)[^{}]*"evidence"\s*:\s*"[^"]*"[^{}]*\}/);
-  if (jsonMatch) {
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (typeof parsed.pass === "boolean" && typeof parsed.evidence === "string") {
-        return parsed;
-      }
-    } catch {
-      // Fall through
-    }
-  }
-
-  return null;
 }
 
 /**
@@ -74,6 +70,10 @@ export async function gradeAssertion(
         maxTurns: 5,
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
+        outputFormat: {
+          type: "json_schema",
+          schema: VERDICT_SCHEMA,
+        },
       },
     })) {
       if (message.type === "result" && "result" in message && typeof message.result === "string") {
@@ -81,14 +81,13 @@ export async function gradeAssertion(
       }
     }
 
-    // Extract JSON verdict from the result text
-    const verdict = extractVerdict(resultText);
+    const verdict = parseVerdict(resultText);
     if (!verdict) {
       return {
         id: assertion.id,
         check: assertion.check,
         pass: null,
-        evidence: `error: could not extract verdict from LLM response`,
+        evidence: `error: could not parse structured output from LLM response`,
       };
     }
 

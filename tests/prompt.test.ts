@@ -46,11 +46,10 @@ describe("buildGraderPrompt", () => {
     expect(prompt).not.toContain("**Note:**");
   });
 
-  it("includes JSON output format block", () => {
+  it("does not include JSON output format block (structured output handles this)", () => {
     const prompt = buildGraderPrompt(baseAssertion, "/tmp/output.md");
-    expect(prompt).toContain("```json");
-    expect(prompt).toContain('"pass"');
-    expect(prompt).toContain('"evidence"');
+    expect(prompt).not.toContain("```json");
+    expect(prompt).not.toContain("## Output Format");
   });
 
   it("includes grading rules section", () => {

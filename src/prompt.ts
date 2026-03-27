@@ -45,16 +45,8 @@ export function buildGraderPrompt(
   parts.push(`- Evaluate ONLY this assertion — nothing else.`);
   parts.push(`- Base your verdict on evidence found in the output. If the output references file paths (e.g., files the agent created), you may read those files to gather additional evidence.`);
   parts.push(`- For NEGATIVE assertions (checking something did NOT happen): search the entire output thoroughly. Only pass if you find no evidence of the prohibited behavior. Absence of evidence requires a thorough search — state what you looked for and confirm it was not found.`);
-  parts.push(`- Provide concise, specific evidence. Quote relevant parts of the output.`);
+  parts.push(`- Provide concise, specific evidence (1-2 sentences). Quote relevant parts of the output.`);
   parts.push(`- If the output does not contain enough information to evaluate the assertion, fail it with an explanation of what is missing.`);
-  parts.push(``);
-  parts.push(`## Output Format`);
-  parts.push(``);
-  parts.push(`After your analysis, you MUST end your response with exactly this JSON block:`);
-  parts.push("```json");
-  parts.push(`{"pass": true_or_false, "evidence": "one sentence summary of your reasoning"}`);
-  parts.push("```");
-  parts.push(`The JSON block must be the last thing in your response. The "evidence" field should be a concise summary (1-2 sentences) of the key evidence for your verdict.`);
 
   return parts.join("\n");
 }
