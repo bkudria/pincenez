@@ -72,13 +72,14 @@ export async function lintAssertion(
 
   try {
     let resultText = "";
+    let sdkError: { subtype: string; errors: string[] } | null = null;
 
     for await (const message of query({
       prompt,
       options: {
         model,
         tools: [],
-        maxTurns: 1,
+        maxTurns: 10,
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
         outputFormat: {
@@ -87,17 +88,43 @@ export async function lintAssertion(
         },
       },
     })) {
-      if (message.type === "result" && "result" in message && typeof message.result === "string") {
-        resultText = message.result;
+      if (message.type === "result") {
+        if ("subtype" in message && message.subtype === "success") {
+          // Prefer structured_output (pre-parsed object) over result (JSON string)
+          if ("structured_output" in message && message.structured_output != null) {
+            resultText = JSON.stringify(message.structured_output);
+          } else if ("result" in message && typeof message.result === "string") {
+            resultText = message.result;
+          }
+        } else if ("subtype" in message) {
+          const errors = "errors" in message && Array.isArray(message.errors)
+            ? (message.errors as string[])
+            : [];
+          sdkError = { subtype: String(message.subtype), errors };
+        }
       }
+    }
+
+    if (sdkError) {
+      const errorDetail = sdkError.errors.length > 0
+        ? sdkError.errors.join("; ")
+        : "no error details provided";
+      return {
+        id: assertion.id,
+        check: assertion.check,
+        issues: [{ anti_pattern: "error", suggestion: `SDK result ${sdkError.subtype}: ${errorDetail}` }],
+      };
     }
 
     const issues = parseLintOutput(resultText);
     if (!issues) {
+      const snippet = resultText.length > 0
+        ? resultText.slice(0, 200)
+        : "(empty response)";
       return {
         id: assertion.id,
         check: assertion.check,
-        issues: [{ anti_pattern: "error", suggestion: "could not parse structured output from LLM response" }],
+        issues: [{ anti_pattern: "error", suggestion: `could not parse structured output from LLM response: ${snippet}` }],
       };
     }
 

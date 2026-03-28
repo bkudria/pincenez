@@ -101,7 +101,7 @@ describe("lintAssertion", () => {
     expect(result.issues).toEqual([]);
   });
 
-  it("passes outputFormat with json_schema to query", async () => {
+  it("passes outputFormat with json_schema and sufficient maxTurns to query", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
         resultMessage('{"issues": []}'),
@@ -117,7 +117,7 @@ describe("lintAssertion", () => {
             type: "json_schema",
           }),
           tools: [],
-          maxTurns: 1,
+          maxTurns: 10,
         }),
       }),
     );
@@ -144,6 +144,81 @@ describe("lintAssertion", () => {
     const result = await lintAssertion(assertion);
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].anti_pattern).toBe("error");
+  });
+
+  it("extracts lint result from structured_output when result field is absent", async () => {
+    const structured = { issues: [{ anti_pattern: "vague", suggestion: "Name the metric" }] };
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        {
+          ...resultMessage(""),
+          structured_output: structured,
+        } as unknown as SDKResultSuccess,
+      ]),
+    );
+
+    const result = await lintAssertion(assertion);
+    expect(result.issues).toEqual([
+      { anti_pattern: "vague", suggestion: "Name the metric" },
+    ]);
+  });
+
+  it("prefers structured_output over result string", async () => {
+    const structured = { issues: [{ anti_pattern: "compound", suggestion: "Split it" }] };
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        {
+          ...resultMessage('{"issues": [{"anti_pattern": "vague", "suggestion": "wrong"}]}'),
+          structured_output: structured,
+        } as unknown as SDKResultSuccess,
+      ]),
+    );
+
+    const result = await lintAssertion(assertion);
+    expect(result.issues).toEqual([
+      { anti_pattern: "compound", suggestion: "Split it" },
+    ]);
+  });
+
+  it("surfaces SDK error details for non-success subtypes", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        {
+          type: "result",
+          subtype: "error_max_turns",
+          duration_ms: 0,
+          duration_api_ms: 0,
+          is_error: true,
+          num_turns: 1,
+          session_id: "test-session",
+          total_cost_usd: 0,
+          usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, server_tool_use: null },
+          modelUsage: {},
+          permission_denials: [],
+          uuid: "test-uuid",
+          errors: ["max turns exceeded"],
+        } as unknown as SDKMessage,
+      ]),
+    );
+
+    const result = await lintAssertion(assertion);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].anti_pattern).toBe("error");
+    expect(result.issues[0].suggestion).toContain("error_max_turns");
+    expect(result.issues[0].suggestion).toContain("max turns exceeded");
+  });
+
+  it("returns error with snippet when structured output parsing fails", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        resultMessage("some garbage text"),
+      ]),
+    );
+
+    const result = await lintAssertion(assertion);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].anti_pattern).toBe("error");
+    expect(result.issues[0].suggestion).toContain("some garbage text");
   });
 
   it("deletes CLAUDECODE env var", async () => {
