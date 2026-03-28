@@ -63,13 +63,14 @@ export async function gradeAssertion(
   try {
     let resultText = "";
     let costUsd = 0;
+    let sdkError: { subtype: string; errors: string[] } | null = null;
 
     for await (const message of query({
       prompt,
       options: {
         model,
         tools: ["Read"],
-        maxTurns: 5,
+        maxTurns: 10,
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
         outputFormat: {
@@ -79,22 +80,49 @@ export async function gradeAssertion(
       },
     })) {
       if (message.type === "result") {
-        if ("result" in message && typeof message.result === "string") {
-          resultText = message.result;
-        }
         if ("total_cost_usd" in message && typeof message.total_cost_usd === "number") {
           costUsd = message.total_cost_usd;
+        }
+
+        if ("subtype" in message && message.subtype === "success") {
+          // Prefer structured_output (pre-parsed object) over result (JSON string)
+          if ("structured_output" in message && message.structured_output != null) {
+            resultText = JSON.stringify(message.structured_output);
+          } else if ("result" in message && typeof message.result === "string") {
+            resultText = message.result;
+          }
+        } else if ("subtype" in message) {
+          const errors = "errors" in message && Array.isArray(message.errors)
+            ? (message.errors as string[])
+            : [];
+          sdkError = { subtype: String(message.subtype), errors };
         }
       }
     }
 
-    const verdict = parseVerdict(resultText);
-    if (!verdict) {
+    if (sdkError) {
+      const errorDetail = sdkError.errors.length > 0
+        ? sdkError.errors.join("; ")
+        : "no error details provided";
       return {
         id: assertion.id,
         check: assertion.check,
         pass: null,
-        evidence: `error: could not parse structured output from LLM response`,
+        evidence: `error: SDK result ${sdkError.subtype}: ${errorDetail}`,
+        cost_usd: costUsd,
+      };
+    }
+
+    const verdict = parseVerdict(resultText);
+    if (!verdict) {
+      const snippet = resultText.length > 0
+        ? resultText.slice(0, 200)
+        : "(empty response)";
+      return {
+        id: assertion.id,
+        check: assertion.check,
+        pass: null,
+        evidence: `error: could not parse structured output from LLM response: ${snippet}`,
         cost_usd: costUsd,
       };
     }
