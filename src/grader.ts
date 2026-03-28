@@ -7,6 +7,7 @@ export interface AssertionResult {
   check: string;
   pass: boolean | null;
   evidence: string;
+  cost_usd: number;
 }
 
 export interface Verdict {
@@ -61,6 +62,7 @@ export async function gradeAssertion(
 
   try {
     let resultText = "";
+    let costUsd = 0;
 
     for await (const message of query({
       prompt,
@@ -76,8 +78,13 @@ export async function gradeAssertion(
         },
       },
     })) {
-      if (message.type === "result" && "result" in message && typeof message.result === "string") {
-        resultText = message.result;
+      if (message.type === "result") {
+        if ("result" in message && typeof message.result === "string") {
+          resultText = message.result;
+        }
+        if ("total_cost_usd" in message && typeof message.total_cost_usd === "number") {
+          costUsd = message.total_cost_usd;
+        }
       }
     }
 
@@ -88,6 +95,7 @@ export async function gradeAssertion(
         check: assertion.check,
         pass: null,
         evidence: `error: could not parse structured output from LLM response`,
+        cost_usd: costUsd,
       };
     }
 
@@ -96,6 +104,7 @@ export async function gradeAssertion(
       check: assertion.check,
       pass: verdict.pass,
       evidence: verdict.evidence,
+      cost_usd: costUsd,
     };
   } catch (err) {
     return {
@@ -103,6 +112,7 @@ export async function gradeAssertion(
       check: assertion.check,
       pass: null,
       evidence: `error: ${err instanceof Error ? err.message : String(err)}`,
+      cost_usd: 0,
     };
   }
 }

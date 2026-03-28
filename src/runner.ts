@@ -15,7 +15,7 @@ export async function run(
   rubric: Rubric,
   outputPath: string,
   options: RunOptions = {},
-): Promise<{ results: AssertionResult[]; passRate: number }> {
+): Promise<{ results: AssertionResult[]; passRate: number; costUsd: number }> {
   const { assertions } = rubric;
   const context = options.context ?? rubric.context;
   const results: AssertionResult[] = [];
@@ -47,7 +47,13 @@ export async function run(
 
   process.stdout.write(`pass_rate: ${passRate}\n`);
 
-  return { results, passRate };
+  // Sum and output cost
+  const costUsd = results.reduce((sum, r) => sum + r.cost_usd, 0);
+  if (costUsd > 0) {
+    process.stdout.write(`cost_usd: ${costUsd}\n`);
+  }
+
+  return { results, passRate, costUsd };
 }
 
 /**

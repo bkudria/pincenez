@@ -97,6 +97,7 @@ describe("gradeAssertion", () => {
       check: "The output is correct",
       pass: true,
       evidence: "looks good",
+      cost_usd: 0,
     });
   });
 
@@ -200,6 +201,15 @@ describe("gradeAssertion", () => {
     const result = await gradeAssertion(assertion, "/tmp/out.md");
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("SDK connection failed");
+  });
+
+  it("captures total_cost_usd from result message", async () => {
+    const msg = resultMessage('{"pass": true, "evidence": "ok"}');
+    msg.total_cost_usd = 0.0042;
+    mockQuery.mockReturnValue(asyncMessages([msg]));
+
+    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    expect(result.cost_usd).toBe(0.0042);
   });
 
   it("deletes CLAUDECODE env var", async () => {

@@ -22,8 +22,8 @@ function makeRubric(overrides: Partial<Rubric> = {}): Rubric {
   };
 }
 
-function makeResult(id: string, pass: boolean | null, evidence = "evidence"): AssertionResult {
-  return { id, check: `check for ${id}`, pass, evidence };
+function makeResult(id: string, pass: boolean | null, evidence = "evidence", cost_usd = 0): AssertionResult {
+  return { id, check: `check for ${id}`, pass, evidence, cost_usd };
 }
 
 describe("run", () => {
@@ -146,13 +146,32 @@ describe("run", () => {
     );
   });
 
-  it("returns results and passRate", async () => {
+  it("returns results, passRate, and costUsd", async () => {
+    mockGrade.mockImplementation(async (assertion) =>
+      makeResult(assertion.id, true, "evidence", 0.005),
+    );
+
+    const { results, passRate, costUsd } = await run(makeRubric(), "/tmp/out.md");
+    expect(results).toHaveLength(2);
+    expect(passRate).toBe(1);
+    expect(costUsd).toBe(0.01);
+  });
+
+  it("writes cost_usd line when cost is non-zero", async () => {
+    mockGrade.mockImplementation(async (assertion) =>
+      makeResult(assertion.id, true, "evidence", 0.003),
+    );
+
+    await run(makeRubric(), "/tmp/out.md");
+    expect(written).toContain("cost_usd: 0.006");
+  });
+
+  it("omits cost_usd line when cost is zero", async () => {
     mockGrade.mockImplementation(async (assertion) =>
       makeResult(assertion.id, true),
     );
 
-    const { results, passRate } = await run(makeRubric(), "/tmp/out.md");
-    expect(results).toHaveLength(2);
-    expect(passRate).toBe(1);
+    await run(makeRubric(), "/tmp/out.md");
+    expect(written).not.toContain("cost_usd:");
   });
 });
