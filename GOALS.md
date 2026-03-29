@@ -39,13 +39,13 @@ Each tool owns one step of the pipeline. They compose via files and stdout.
 - Blind comparison (was `comparator.md` in skillcraft — may become a `pincenez` mode later)
 - Cross-iteration trend analysis (stays in skillcraft)
 - Scuttlerun-specific input parsing (pincenez accepts any text; scuttlerun-awareness deferred)
-- Replacing the full eval orchestrator (`run-eval.sh` remains the pipeline coordinator)
+- Replacing the eval orchestrator (craboodle owns pipeline coordination)
 - Deterministic/code-based assertion types (use grep, jq, test — pincenez is LLM-only)
 - Rubric dimensions / qualitative scoring (too subjective, prone to hallucination)
 
-## Open Questions
+## Resolved Questions
 
-- **Form factor**: Shell script? Node.js CLI (like scuttlerun)? TBD.
-- **Grader prompt**: Built-in default vs shipped file vs both? Deferred.
-- **Feature scope**: Should discrimination classification, claims extraction, meta-evaluation of assertions be part of pincenez or stay in skillcraft? Deferred.
-- **Input format**: Scuttlerun-aware parsing vs plain text only? Deferred.
+- **Form factor**: TypeScript CLI (matches scuttlerun). Published via `bin` entry in package.json.
+- **Grader prompt**: Built-in default in `prompt.ts`. No shipped file — keeps the tool self-contained.
+- **Feature scope**: Assertion linting (`pincenez lint`) implemented for 5 anti-patterns: vague, compound, tautological, always_passes, unverifiable. Discrimination classification stays out of scope.
+- **Input format**: Plain text only. Reads any file or stdin. No scuttlerun-specific parsing.

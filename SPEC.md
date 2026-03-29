@@ -155,6 +155,51 @@ pincenez rubric.yml output.md --context "This was a timed exercise with a 30-sec
 pincenez rubric.yml output.md | yq -e '.pass_rate == 1.0'
 ```
 
+## Lint
+
+Check assertion quality before running evaluations. Catches anti-patterns that cause unreliable or misleading results.
+
+```
+pincenez lint <rubric.yml> [--model <model>] [--context <text>]
+```
+
+### Anti-Patterns Detected
+
+| Anti-Pattern | Description |
+|---|---|
+| **vague** | Subjective terms without specifics (e.g., "high quality", "follows best practices") |
+| **compound** | Multiple independent checks in one assertion (should be split) |
+| **tautological** | Restates the prompt without adding specificity (requires `--context`) |
+| **always_passes** | Tests baseline LLM behavior rather than skill/config-specific value |
+| **unverifiable** | Tests internal state rather than observable output |
+
+### Lint Output
+
+```yaml
+assertions:
+  - id: file-created
+    check: "A file named ocean.txt was created or written to"
+    issues: []
+  - id: quality-check
+    check: "Output is high quality and follows best practices"
+    issues:
+      - anti_pattern: vague
+        suggestion: "Replace 'high quality' with specific criteria..."
+assertions_total: 2
+assertions_with_issues: 1
+```
+
+### Lint Execution Model
+
+Each assertion is linted independently in parallel (one LLM call per assertion), matching the grading execution model. The `--context` flag passes the scenario prompt to enable tautological detection — without it, the linter cannot tell if an assertion merely restates the prompt.
+
+### Lint Exit Codes
+
+Lint uses the same exit codes as grading:
+- 0: Lint completed (regardless of issues found)
+- 1: Rubric error
+- 2: Runtime error
+
 ## Composition with Other Tools
 
 ### Standalone grading
@@ -162,34 +207,14 @@ pincenez rubric.yml output.md | yq -e '.pass_rate == 1.0'
 pincenez rubric.yml output.md > grading.yml
 ```
 
-### Paired evaluation (how skillcraft uses it)
+### Eval pipeline (how craboodle uses it)
 ```bash
-# Run both variants
-scuttlerun run with-skill.yml > with_skill/output.md
-scuttlerun run without-skill.yml > without_skill/output.md
-
-# Grade each independently (same rubric, different outputs)
-pincenez rubric.yml with_skill/output.md    > with_skill/grading.yml
-pincenez rubric.yml without_skill/output.md > without_skill/grading.yml
-
-# Compute discrimination downstream (pure data, no LLM needed):
-# "assertion X passed for with_skill but failed for without_skill"
+# craboodle runs scuttlerun for each scenario, then grades with pincenez
+scuttlerun run base.yml scenario-override.yml > output.yml
+pincenez rubric.yml output.yml > grading.yml
 ```
 
 ### CI quality gate
 ```bash
 scuttlerun run test-scenario.yml | pincenez rubric.yml | yq -e '.pass_rate >= 0.8'
 ```
-
-## Impact on Skillcraft
-
-| Current (inlined in run-eval.sh) | After extraction |
-|---|---|
-| `run-eval.sh` builds ~30-line grading prompt | `run-eval.sh` generates `rubric.yml` per scenario from `evals.yml` |
-| Embeds `grader.md` instructions in prompt | `pincenez` has built-in grader prompt |
-| Invokes `claude -p` with `--allowedTools Read,Write` | Invokes `pincenez rubric.yml output.md` |
-| Extracts JSON from Claude's envelope (`extract_claude_text`) | `pincenez` handles extraction, outputs clean YAML |
-| `grading.json` schema coupled to `grader.md` | Grading schema is `pincenez`'s published contract |
-| ~100 lines of `run_grader()` function | ~3-line `pincenez` call per variant |
-| All assertions in one LLM call (cross-contamination risk) | One LLM call per assertion (independent, parallel) |
-| Discrimination computed during grading (LLM sees both) | Discrimination computed downstream from paired gradings (pure data) |

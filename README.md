@@ -99,6 +99,17 @@ pincenez [options] <rubric.yml> [output]
 | 1 | Rubric error (invalid YAML, missing fields) |
 | 2 | Runtime error |
 
+### Lint
+
+Check assertions for common quality anti-patterns before spending money on eval runs:
+
+```bash
+pincenez lint rubric.yml
+pincenez lint rubric.yml --context "The prompt that produced this output"
+```
+
+Detects 5 anti-patterns: vague, compound, tautological, always_passes, unverifiable. Uses the same `--model` flag as grading.
+
 ## Composition
 
 ```bash
