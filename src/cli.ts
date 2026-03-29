@@ -172,7 +172,7 @@ async function main() {
     .argument("[output]", "File or directory for the LLM to read and evaluate (default: stdin)")
     .option("--model <model>", "LLM judge model (default: claude-haiku-4-5)")
     .option("--context <text>", "Override or supplement the rubric's context field")
-    .option("--verbose", "Include verbose output on stderr")
+    .option("-v, --verbose", "Include verbose output on stderr")
     .addHelpText("after", HELP_TEXT)
     .action(async (rubricFile: string | undefined, outputArg: string | undefined, opts) => {
       await gradeAction(rubricFile, outputArg, opts, program);
@@ -183,7 +183,7 @@ async function main() {
     .description("Check assertion quality for common anti-patterns")
     .option("--model <model>", "LLM model for lint analysis (default: claude-haiku-4-5)")
     .option("--context <text>", "Scenario prompt (helps detect tautological assertions)")
-    .option("--verbose", "Include verbose output on stderr")
+    .option("-v, --verbose", "Include verbose output on stderr")
     .action(async (rubricFile: string, opts) => {
       await lintAction(rubricFile, opts);
     });
