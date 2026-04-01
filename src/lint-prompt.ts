@@ -11,6 +11,15 @@ export function buildLintPrompt(
 
   parts.push(`You are an eval assertion quality analyst. Your task is to check a single assertion for common anti-patterns that reduce eval reliability.`);
   parts.push(``);
+  parts.push(`## Domain Detection`);
+  parts.push(``);
+  parts.push(`Before analyzing the assertion, characterize the scenario's domain from the context:`);
+  parts.push(`- **technical** — Code, data, APIs, systems. Assertions can and should reference concrete, objectively verifiable properties.`);
+  parts.push(`- **creative** — Poetry, prose, design, music. Some subjectivity is inherent. Assertions like "thematic progression" or "distinct imagery" are as concrete as this domain allows.`);
+  parts.push(`- **mixed** — Both technical and creative elements.`);
+  parts.push(``);
+  parts.push(`Use the detected domain to calibrate your anti-pattern checks. For creative domains, only flag "vague" when the assertion is genuinely ambiguous to any grader — not when it uses domain-appropriate language that trained readers would evaluate consistently.`);
+  parts.push(``);
   parts.push(`## Anti-Patterns to Check`);
   parts.push(``);
   parts.push(`1. **vague** — Different graders would disagree on pass/fail. Uses subjective terms like "high quality", "correct", "proper", "good", "best practices", "well-structured" without specifying what concretely to check.`);
@@ -48,6 +57,7 @@ export function buildLintPrompt(
   parts.push(``);
   parts.push(`- Only flag genuine issues. Many assertions are fine — return an empty issues array for good assertions.`);
   parts.push(`- Be specific in suggestions. Don't just say "be more specific" — give a concrete rewrite or direction.`);
+  parts.push(`- Your suggestions must not introduce other anti-patterns. Before suggesting a rewrite, verify it would pass your own checks.`);
   parts.push(`- An assertion can have multiple issues (e.g., both vague AND compound).`);
   parts.push(`- When flagging tautological, you need the scenario context to compare against. Without context, skip this check.`);
   parts.push(`- For always_passes, consider whether a general-purpose LLM would typically do this without special instruction.`);

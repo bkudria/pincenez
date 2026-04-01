@@ -49,4 +49,17 @@ describe("buildLintPrompt", () => {
     const prompt = buildLintPrompt(baseAssertion);
     expect(prompt).not.toContain("**Note:**");
   });
+
+  it("includes domain detection section", () => {
+    const prompt = buildLintPrompt(baseAssertion);
+    expect(prompt).toContain("## Domain Detection");
+    expect(prompt).toContain("**technical**");
+    expect(prompt).toContain("**creative**");
+    expect(prompt).toContain("**mixed**");
+  });
+
+  it("includes self-consistency rule", () => {
+    const prompt = buildLintPrompt(baseAssertion);
+    expect(prompt).toContain("suggestions must not introduce other anti-patterns");
+  });
 });

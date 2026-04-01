@@ -32,18 +32,18 @@ Rubrics are YAML files defining what to evaluate. Only `assertions` is required.
 
 ```yaml
 context: |
-  The agent was asked to write a haiku about the ocean
-  and save it to ocean.txt
+  The agent was asked to write a function and save it to a file.
+  A CLAUDE.md instruction required writing tests before production code.
 
 assertions:
-  - id: file-created
-    check: "A file named ocean.txt was created or written to"
-    note: "Look for Write tool usage targeting ocean.txt"
-  - id: three-lines
-    check: "The output contains exactly 3 lines of poetry"
-  - id: syllable-pattern
-    check: "Lines follow a 5-7-5 syllable pattern"
-    note: "Count syllables carefully; common errors include diphthongs and silent vowels"
+  - id: test-before-code
+    check: "A test file was written before or alongside the production code"
+    note: "Look for Write tool calls — the test file should appear before the implementation file"
+  - id: function-exists
+    check: "The requested function exists in the output file"
+  - id: tests-validate
+    check: "At least one test case validates the function's behavior"
+    note: "The test should actually exercise the function, not just import it"
     model: claude-sonnet-4-6
 ```
 
