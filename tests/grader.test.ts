@@ -222,6 +222,16 @@ describe("gradeAssertion", () => {
     expect(result.evidence).toContain("SDK connection failed");
   });
 
+  it("stringifies non-Error throws", async () => {
+    mockQuery.mockImplementation(() => {
+      throw "raw string error";
+    });
+
+    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    expect(result.pass).toBeNull();
+    expect(result.evidence).toContain("raw string error");
+  });
+
   it("captures total_cost_usd from result message", async () => {
     const msg = resultMessage('{"pass": true, "evidence": "ok"}');
     msg.total_cost_usd = 0.0042;
@@ -242,6 +252,29 @@ describe("gradeAssertion", () => {
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("error_max_structured_output_retries");
     expect(result.evidence).toContain("failed after 3 retries");
+  });
+
+  it("reports no error details when SDK error has empty errors array", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        errorMessage("error_unknown", []),
+      ]),
+    );
+
+    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    expect(result.pass).toBeNull();
+    expect(result.evidence).toContain("error_unknown");
+    expect(result.evidence).toContain("no error details provided");
+  });
+
+  it("reports empty response when success has no content", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([resultMessage("")]),
+    );
+
+    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    expect(result.pass).toBeNull();
+    expect(result.evidence).toContain("(empty response)");
   });
 
   it("surfaces SDK error details for error_during_execution", async () => {

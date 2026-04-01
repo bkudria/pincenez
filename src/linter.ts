@@ -97,10 +97,8 @@ export async function lintAssertion(
             resultText = message.result;
           }
         } else if ("subtype" in message) {
-          const errors = "errors" in message && Array.isArray(message.errors)
-            ? (message.errors as string[])
-            : [];
-          sdkError = { subtype: String(message.subtype), errors };
+          const errMsg = message as unknown as { subtype: string; errors: string[] };
+          sdkError = { subtype: errMsg.subtype, errors: errMsg.errors };
         }
       }
     }

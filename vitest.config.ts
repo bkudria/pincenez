@@ -8,6 +8,12 @@ export default defineConfig({
       include: ["src/**/*.ts"],
       exclude: ["src/cli.ts"],
       reporter: ["text", "lcov", "json-summary"],
+      thresholds: {
+        lines: 100,
+        branches: 100,
+        functions: 100,
+        statements: 100,
+      },
     },
   },
 });

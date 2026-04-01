@@ -41,9 +41,7 @@ export async function run(
 
   // Compute pass rate (null results count as failures)
   const passed = results.filter((r) => r.pass === true).length;
-  const passRate = assertions.length > 0
-    ? Math.round((passed / assertions.length) * 100) / 100
-    : 0;
+  const passRate = Math.round((passed / assertions.length) * 100) / 100;
 
   process.stdout.write(`pass_rate: ${passRate}\n`);
 

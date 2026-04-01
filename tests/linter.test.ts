@@ -134,6 +134,17 @@ describe("lintAssertion", () => {
     expect(result.issues[0].suggestion).toContain("SDK connection failed");
   });
 
+  it("stringifies non-Error throws", async () => {
+    mockQuery.mockImplementation(() => {
+      throw "raw string error";
+    });
+
+    const result = await lintAssertion(assertion);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].anti_pattern).toBe("error");
+    expect(result.issues[0].suggestion).toContain("raw string error");
+  });
+
   it("returns error issue when structured output parsing fails", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
@@ -178,6 +189,45 @@ describe("lintAssertion", () => {
     expect(result.issues).toEqual([
       { anti_pattern: "compound", suggestion: "Split it" },
     ]);
+  });
+
+  it("reports no error details when SDK error has empty errors array", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        {
+          type: "result",
+          subtype: "error_unknown",
+          duration_ms: 0,
+          duration_api_ms: 0,
+          is_error: true,
+          num_turns: 1,
+          session_id: "test-session",
+          total_cost_usd: 0,
+          usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, server_tool_use: null },
+          modelUsage: {},
+          permission_denials: [],
+          uuid: "test-uuid",
+          errors: [],
+        } as unknown as SDKMessage,
+      ]),
+    );
+
+    const result = await lintAssertion(assertion);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].anti_pattern).toBe("error");
+    expect(result.issues[0].suggestion).toContain("error_unknown");
+    expect(result.issues[0].suggestion).toContain("no error details provided");
+  });
+
+  it("reports empty response when success has no content", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([resultMessage("")]),
+    );
+
+    const result = await lintAssertion(assertion);
+    expect(result.issues).toHaveLength(1);
+    expect(result.issues[0].anti_pattern).toBe("error");
+    expect(result.issues[0].suggestion).toContain("(empty response)");
   });
 
   it("surfaces SDK error details for non-success subtypes", async () => {
