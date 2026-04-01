@@ -3,7 +3,7 @@
 ## Synopsis
 
 ```
-pincenez [options] <rubric.yml> [output]
+pincenez [options] <rubric.yaml> [output]
 ```
 
 Grade a single output against a rubric using an LLM judge. Returns structured evaluation YAML.
@@ -90,12 +90,12 @@ pass_rate: 0.67
 ## CLI Interface
 
 ```
-Usage: pincenez [options] <rubric.yml> [output]
+Usage: pincenez [options] <rubric.yaml> [output]
 
 Grade an output against a rubric using an LLM judge.
 
 Arguments:
-  rubric.yml          Rubric file defining assertions to evaluate
+  rubric.yaml          Rubric file defining assertions to evaluate
   output              File or directory for the LLM to read and evaluate
                       If omitted, reads from stdin (written to temp file)
 
@@ -135,24 +135,24 @@ Options:
 
 ```bash
 # Grade a file against a rubric
-pincenez rubric.yml output.md
+pincenez rubric.yaml output.md
 
 # Grade and save to file
-pincenez rubric.yml output.md > grading.yml
+pincenez rubric.yaml output.md > grading.yaml
 
 # Pipe from scuttlerun
-scuttlerun run session.yml | pincenez rubric.yml
+scuttlerun run session.yaml | pincenez rubric.yaml
 
 # Use a stronger model for all assertions
-pincenez rubric.yml output.md --model claude-sonnet-4-6
+pincenez rubric.yaml output.md --model claude-sonnet-4-6
 
 # Or set model per-assertion in the rubric (overrides --model)
 
 # Inline context supplement
-pincenez rubric.yml output.md --context "This was a timed exercise with a 30-second limit"
+pincenez rubric.yaml output.md --context "This was a timed exercise with a 30-second limit"
 
 # CI: check pass rate with yq
-pincenez rubric.yml output.md | yq -e '.pass_rate == 1.0'
+pincenez rubric.yaml output.md | yq -e '.pass_rate == 1.0'
 ```
 
 ## Lint
@@ -160,7 +160,7 @@ pincenez rubric.yml output.md | yq -e '.pass_rate == 1.0'
 Check assertion quality before running evaluations. Catches anti-patterns that cause unreliable or misleading results.
 
 ```
-pincenez lint <rubric.yml> [--model <model>] [--context <text>]
+pincenez lint <rubric.yaml> [--model <model>] [--context <text>]
 ```
 
 ### Anti-Patterns Detected
@@ -204,17 +204,17 @@ Lint uses the same exit codes as grading:
 
 ### Standalone grading
 ```bash
-pincenez rubric.yml output.md > grading.yml
+pincenez rubric.yaml output.md > grading.yaml
 ```
 
 ### Eval pipeline (how craboodle uses it)
 ```bash
 # craboodle runs scuttlerun for each scenario, then grades with pincenez
-scuttlerun run base.yml scenario-override.yml > output.yml
-pincenez rubric.yml output.yml > grading.yml
+scuttlerun run base.yaml scenario-override.yaml > output.yaml
+pincenez rubric.yaml output.yaml > grading.yaml
 ```
 
 ### CI quality gate
 ```bash
-scuttlerun run test-scenario.yml | pincenez rubric.yml | yq -e '.pass_rate >= 0.8'
+scuttlerun run test-scenario.yaml | pincenez rubric.yaml | yq -e '.pass_rate >= 0.8'
 ```

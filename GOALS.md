@@ -25,7 +25,7 @@ Each tool owns one step of the pipeline. They compose via files and stdout.
 
 1. **Single-output grading as the primitive.** Pincenez evaluates ONE output against a rubric. A/B comparison is composed on top — grade each output independently, then diff the results downstream. This prevents cross-contamination (the judge can't be biased by seeing both outputs) and maximizes composability.
 
-2. **Own rubric spec.** Pincenez defines its own YAML schema for rubrics, independent of skillcraft's `evals.yml`. Skillcraft translates its scenarios to pincenez rubrics at runtime — a thin mapping layer.
+2. **Own rubric spec.** Pincenez defines its own YAML schema for rubrics, independent of skillcraft's `evals.yaml`. Skillcraft translates its scenarios to pincenez rubrics at runtime — a thin mapping layer.
 
 3. **Useful beyond skillcraft.** Primary audience is skillcraft users, but the tool should be valuable to LLM eval practitioners and Claude Code power users building evaluation workflows.
 

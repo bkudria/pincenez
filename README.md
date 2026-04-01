@@ -17,13 +17,13 @@ npm link          # makes `pincenez` available globally
 
 ```bash
 # Grade a file against a rubric
-pincenez rubric.yml output.md
+pincenez rubric.yaml output.md
 
 # Pipe from scuttlerun
-scuttlerun run session.yml | pincenez rubric.yml
+scuttlerun run session.yaml | pincenez rubric.yaml
 
 # Use a stronger model for all assertions
-pincenez rubric.yml output.md --model claude-sonnet-4-6
+pincenez rubric.yaml output.md --model claude-sonnet-4-6
 ```
 
 ## Rubric Schema
@@ -80,7 +80,7 @@ Results appear in arrival order (whichever assertion finishes first). `pass_rate
 ## CLI
 
 ```
-pincenez [options] <rubric.yml> [output]
+pincenez [options] <rubric.yaml> [output]
 ```
 
 | Option | Description |
@@ -104,8 +104,8 @@ pincenez [options] <rubric.yml> [output]
 Check assertions for common quality anti-patterns before spending money on eval runs:
 
 ```bash
-pincenez lint rubric.yml
-pincenez lint rubric.yml --context "The prompt that produced this output"
+pincenez lint rubric.yaml
+pincenez lint rubric.yaml --context "The prompt that produced this output"
 ```
 
 Detects 5 anti-patterns: vague, compound, tautological, always_passes, unverifiable. Uses the same `--model` flag as grading.
@@ -114,17 +114,17 @@ Detects 5 anti-patterns: vague, compound, tautological, always_passes, unverifia
 
 ```bash
 # Standalone grading
-pincenez rubric.yml output.md > grading.yml
+pincenez rubric.yaml output.md > grading.yaml
 
 # Pipe from scuttlerun
-scuttlerun run session.yml | pincenez rubric.yml
+scuttlerun run session.yaml | pincenez rubric.yaml
 
 # CI quality gate
-scuttlerun run test-scenario.yml | pincenez rubric.yml | yq -e '.pass_rate >= 0.8'
+scuttlerun run test-scenario.yaml | pincenez rubric.yaml | yq -e '.pass_rate >= 0.8'
 
 # Paired evaluation (grade each independently, diff downstream)
-pincenez rubric.yml with_skill/output.md    > with_skill/grading.yml
-pincenez rubric.yml without_skill/output.md > without_skill/grading.yml
+pincenez rubric.yaml with_skill/output.md    > with_skill/grading.yaml
+pincenez rubric.yaml without_skill/output.md > without_skill/grading.yaml
 ```
 
 ## Development
@@ -135,7 +135,7 @@ npm run build            # TypeScript compilation
 npm test                 # Run all tests (vitest)
 npm run test:watch       # Watch mode
 npm run test:coverage    # Tests with coverage report
-npm run dev -- examples/rubric.yml examples/output.md   # Run via tsx
+npm run dev -- examples/rubric.yaml examples/output.md   # Run via tsx
 ```
 
 ## See Also

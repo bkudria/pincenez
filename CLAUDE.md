@@ -15,7 +15,7 @@ npm run build            # TypeScript → dist/ (tsc)
 npm test                 # Run tests (vitest, looks in tests/**/*.test.ts)
 npm run test:watch       # Watch mode
 npm run test:coverage    # Tests with V8 coverage (excludes src/cli.ts)
-npm run dev -- <args>    # Run via tsx without building (e.g. npm run dev -- rubric.yml output.md)
+npm run dev -- <args>    # Run via tsx without building (e.g. npm run dev -- rubric.yaml output.md)
 ```
 
 ## Architecture
