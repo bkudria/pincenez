@@ -1,6 +1,7 @@
 import { stringify as yamlStringify } from "yaml";
 import type { Rubric } from "./config.js";
 import { lintAssertion, type LintResult } from "./linter.js";
+import { writeYamlArrayItem } from "./yaml-utils.js";
 
 export interface LintRunOptions {
   model?: string;
@@ -30,7 +31,11 @@ export async function runLint(
       verbose: options.verbose,
     }).then((result) => {
       results.push(result);
-      writeLintResultYaml(result);
+      writeYamlArrayItem({
+        id: result.id,
+        check: result.check,
+        issues: result.issues,
+      });
       return result;
     }),
   );
@@ -40,28 +45,11 @@ export async function runLint(
 
   const assertionsWithIssues = results.filter((r) => r.issues.length > 0).length;
 
-  process.stdout.write(`assertions_total: ${assertions.length}\n`);
-  process.stdout.write(`assertions_with_issues: ${assertionsWithIssues}\n`);
+  process.stdout.write(yamlStringify({
+    assertions_total: assertions.length,
+    assertions_with_issues: assertionsWithIssues,
+  }, { lineWidth: 0 }));
 
   return { results, assertionsWithIssues };
 }
 
-/**
- * Write a single lint result as a YAML array item to stdout.
- */
-function writeLintResultYaml(result: LintResult): void {
-  const item = {
-    id: result.id,
-    check: result.check,
-    issues: result.issues,
-  };
-
-  const serialized = yamlStringify(item, { lineWidth: 0 }).trimEnd();
-  const lines = serialized.split("\n");
-
-  const yamlItem = lines
-    .map((line: string, i: number) => (i === 0 ? `  - ${line}` : `    ${line}`))
-    .join("\n");
-
-  process.stdout.write(yamlItem + "\n");
-}

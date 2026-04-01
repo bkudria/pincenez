@@ -1,6 +1,7 @@
 import { stringify as yamlStringify } from "yaml";
 import type { Rubric } from "./config.js";
 import { gradeAssertion, type AssertionResult } from "./grader.js";
+import { writeYamlArrayItem } from "./yaml-utils.js";
 
 export interface RunOptions {
   model?: string;
@@ -31,7 +32,12 @@ export async function run(
       verbose: options.verbose,
     }).then((result) => {
       results.push(result);
-      writeAssertionYaml(result);
+      writeYamlArrayItem({
+        id: result.id,
+        check: result.check,
+        pass: result.pass,
+        evidence: result.evidence,
+      });
       return result;
     }),
   );
@@ -43,37 +49,14 @@ export async function run(
   const passed = results.filter((r) => r.pass === true).length;
   const passRate = Math.round((passed / assertions.length) * 100) / 100;
 
-  process.stdout.write(`pass_rate: ${passRate}\n`);
-
-  // Sum and output cost
+  // Write summary as proper YAML
+  const summary: Record<string, unknown> = { pass_rate: passRate };
   const costUsd = results.reduce((sum, r) => sum + r.cost_usd, 0);
   if (costUsd > 0) {
-    process.stdout.write(`cost_usd: ${costUsd}\n`);
+    summary.cost_usd = costUsd;
   }
+  process.stdout.write(yamlStringify(summary, { lineWidth: 0 }));
 
   return { results, passRate, costUsd };
 }
 
-/**
- * Write a single assertion result as a YAML array item to stdout.
- */
-function writeAssertionYaml(result: AssertionResult): void {
-  // Use yaml library for proper escaping/quoting of evidence strings
-  const item = {
-    id: result.id,
-    check: result.check,
-    pass: result.pass,
-    evidence: result.evidence,
-  };
-
-  // Serialize as a single YAML value, then indent as array item
-  const serialized = yamlStringify(item, { lineWidth: 0 }).trimEnd();
-  const lines = serialized.split("\n");
-
-  // First line gets "  - ", subsequent lines get "    " (4-space indent)
-  const yamlItem = lines
-    .map((line: string, i: number) => (i === 0 ? `  - ${line}` : `    ${line}`))
-    .join("\n");
-
-  process.stdout.write(yamlItem + "\n");
-}
