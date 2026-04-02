@@ -1,20 +1,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import type { Rubric } from "../src/config.js";
-import type { AssertionResult } from "../src/grader.js";
+import type { ChecksFile } from "../src/config.js";
+import type { CheckResult } from "../src/grader.js";
 
-// Mock gradeAssertion
+// Mock gradeCheck
 vi.mock("../src/grader.js", () => ({
-  gradeAssertion: vi.fn(),
+  gradeCheck: vi.fn(),
 }));
 
-import { gradeAssertion } from "../src/grader.js";
+import { gradeCheck } from "../src/grader.js";
 import { run } from "../src/runner.js";
 
-const mockGrade = vi.mocked(gradeAssertion);
+const mockGrade = vi.mocked(gradeCheck);
 
-function makeRubric(overrides: Partial<Rubric> = {}): Rubric {
+function makeChecksFile(overrides: Partial<ChecksFile> = {}): ChecksFile {
   return {
-    assertions: [
+    checks: [
       { id: "a1", check: "first check" },
       { id: "a2", check: "second check" },
     ],
@@ -22,7 +22,7 @@ function makeRubric(overrides: Partial<Rubric> = {}): Rubric {
   };
 }
 
-function makeResult(id: string, pass: boolean | null, evidence = "evidence", cost_usd = 0): AssertionResult {
+function makeResult(id: string, pass: boolean | null, evidence = "evidence", cost_usd = 0): CheckResult {
   return { id, check: `check for ${id}`, pass, evidence, cost_usd };
 }
 
@@ -43,23 +43,23 @@ describe("run", () => {
     writeSpy.mockRestore();
   });
 
-  it("writes assertions header first", async () => {
+  it("writes checks header first", async () => {
     mockGrade.mockResolvedValue(makeResult("a1", true));
 
     await run(
-      { assertions: [{ id: "a1", check: "c" }] },
+      { checks: [{ id: "a1", check: "c" }] },
       "/tmp/out.md",
     );
 
-    expect(written).toMatch(/^assertions:\n/);
+    expect(written).toMatch(/^checks:\n/);
   });
 
   it("writes each result as a YAML array item", async () => {
-    mockGrade.mockImplementation(async (assertion) =>
-      makeResult(assertion.id, true, "found it"),
+    mockGrade.mockImplementation(async (check) =>
+      makeResult(check.id, true, "found it"),
     );
 
-    await run(makeRubric(), "/tmp/out.md");
+    await run(makeChecksFile(), "/tmp/out.md");
 
     expect(written).toContain("  - id: a1");
     expect(written).toContain("  - id: a2");
@@ -69,7 +69,7 @@ describe("run", () => {
     mockGrade.mockResolvedValue(makeResult("a1", true));
 
     await run(
-      { assertions: [{ id: "a1", check: "c" }] },
+      { checks: [{ id: "a1", check: "c" }] },
       "/tmp/out.md",
     );
 
@@ -78,21 +78,21 @@ describe("run", () => {
   });
 
   it("computes pass_rate = 1 when all pass", async () => {
-    mockGrade.mockImplementation(async (assertion) =>
-      makeResult(assertion.id, true),
+    mockGrade.mockImplementation(async (check) =>
+      makeResult(check.id, true),
     );
 
-    const { passRate } = await run(makeRubric(), "/tmp/out.md");
+    const { passRate } = await run(makeChecksFile(), "/tmp/out.md");
     expect(passRate).toBe(1);
     expect(written).toContain("pass_rate: 1");
   });
 
   it("computes pass_rate = 0 when all fail", async () => {
-    mockGrade.mockImplementation(async (assertion) =>
-      makeResult(assertion.id, false),
+    mockGrade.mockImplementation(async (check) =>
+      makeResult(check.id, false),
     );
 
-    const { passRate } = await run(makeRubric(), "/tmp/out.md");
+    const { passRate } = await run(makeChecksFile(), "/tmp/out.md");
     expect(passRate).toBe(0);
     expect(written).toContain("pass_rate: 0");
   });
@@ -102,7 +102,7 @@ describe("run", () => {
       .mockResolvedValueOnce(makeResult("a1", true))
       .mockResolvedValueOnce(makeResult("a2", false));
 
-    const { passRate } = await run(makeRubric(), "/tmp/out.md");
+    const { passRate } = await run(makeChecksFile(), "/tmp/out.md");
     expect(passRate).toBe(0.5);
   });
 
@@ -111,15 +111,15 @@ describe("run", () => {
       .mockResolvedValueOnce(makeResult("a1", true))
       .mockResolvedValueOnce(makeResult("a2", null));
 
-    const { passRate } = await run(makeRubric(), "/tmp/out.md");
+    const { passRate } = await run(makeChecksFile(), "/tmp/out.md");
     expect(passRate).toBe(0.5);
   });
 
-  it("prefers options.context over rubric.context", async () => {
+  it("prefers options.context over checksFile.context", async () => {
     mockGrade.mockResolvedValue(makeResult("a1", true));
 
     await run(
-      { assertions: [{ id: "a1", check: "c" }], context: "rubric ctx" },
+      { checks: [{ id: "a1", check: "c" }], context: "rubric ctx" },
       "/tmp/out.md",
       { context: "options ctx" },
     );
@@ -131,11 +131,11 @@ describe("run", () => {
     );
   });
 
-  it("falls back to rubric.context when options.context is absent", async () => {
+  it("falls back to checksFile.context when options.context is absent", async () => {
     mockGrade.mockResolvedValue(makeResult("a1", true));
 
     await run(
-      { assertions: [{ id: "a1", check: "c" }], context: "rubric ctx" },
+      { checks: [{ id: "a1", check: "c" }], context: "rubric ctx" },
       "/tmp/out.md",
     );
 
@@ -147,31 +147,31 @@ describe("run", () => {
   });
 
   it("returns results, passRate, and costUsd", async () => {
-    mockGrade.mockImplementation(async (assertion) =>
-      makeResult(assertion.id, true, "evidence", 0.005),
+    mockGrade.mockImplementation(async (check) =>
+      makeResult(check.id, true, "evidence", 0.005),
     );
 
-    const { results, passRate, costUsd } = await run(makeRubric(), "/tmp/out.md");
+    const { results, passRate, costUsd } = await run(makeChecksFile(), "/tmp/out.md");
     expect(results).toHaveLength(2);
     expect(passRate).toBe(1);
     expect(costUsd).toBe(0.01);
   });
 
   it("writes cost_usd line when cost is non-zero", async () => {
-    mockGrade.mockImplementation(async (assertion) =>
-      makeResult(assertion.id, true, "evidence", 0.003),
+    mockGrade.mockImplementation(async (check) =>
+      makeResult(check.id, true, "evidence", 0.003),
     );
 
-    await run(makeRubric(), "/tmp/out.md");
+    await run(makeChecksFile(), "/tmp/out.md");
     expect(written).toContain("cost_usd: 0.006");
   });
 
   it("omits cost_usd line when cost is zero", async () => {
-    mockGrade.mockImplementation(async (assertion) =>
-      makeResult(assertion.id, true),
+    mockGrade.mockImplementation(async (check) =>
+      makeResult(check.id, true),
     );
 
-    await run(makeRubric(), "/tmp/out.md");
+    await run(makeChecksFile(), "/tmp/out.md");
     expect(written).not.toContain("cost_usd:");
   });
 });

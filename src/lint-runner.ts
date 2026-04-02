@@ -1,6 +1,6 @@
 import { stringify as yamlStringify } from "yaml";
-import type { Rubric } from "./config.js";
-import { lintAssertion, type LintResult } from "./linter.js";
+import type { ChecksFile } from "./config.js";
+import { lintCheck, type LintResult } from "./linter.js";
 import { writeYamlArrayItem } from "./yaml-utils.js";
 
 export interface LintRunOptions {
@@ -10,22 +10,22 @@ export interface LintRunOptions {
 }
 
 /**
- * Lint all assertions in parallel, streaming results to stdout as YAML.
+ * Lint all checks in parallel, streaming results to stdout as YAML.
  */
 export async function runLint(
-  rubric: Rubric,
+  checksFile: ChecksFile,
   options: LintRunOptions = {},
-): Promise<{ results: LintResult[]; assertionsWithIssues: number }> {
-  const { assertions } = rubric;
-  const context = options.context ?? rubric.context;
+): Promise<{ results: LintResult[]; checksWithIssues: number }> {
+  const { checks } = checksFile;
+  const context = options.context ?? checksFile.context;
   const results: LintResult[] = [];
 
   // Write YAML array header immediately
-  process.stdout.write("assertions:\n");
+  process.stdout.write("checks:\n");
 
-  // Launch all assertions in parallel, streaming each result on completion
-  const promises = assertions.map((assertion) =>
-    lintAssertion(assertion, {
+  // Launch all checks in parallel, streaming each result on completion
+  const promises = checks.map((check) =>
+    lintCheck(check, {
       model: options.model,
       context,
       verbose: options.verbose,
@@ -43,13 +43,12 @@ export async function runLint(
   // Wait for all to settle
   await Promise.allSettled(promises);
 
-  const assertionsWithIssues = results.filter((r) => r.issues.length > 0).length;
+  const checksWithIssues = results.filter((r) => r.issues.length > 0).length;
 
   process.stdout.write(yamlStringify({
-    assertions_total: assertions.length,
-    assertions_with_issues: assertionsWithIssues,
+    checks_total: checks.length,
+    checks_with_issues: checksWithIssues,
   }, { lineWidth: 0 }));
 
-  return { results, assertionsWithIssues };
+  return { results, checksWithIssues };
 }
-

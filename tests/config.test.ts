@@ -1,21 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { parseRubric, loadRubric } from "../src/config.js";
+import { parseChecksFile, loadChecksFile } from "../src/config.js";
 import { resolve } from "node:path";
 
-describe("parseRubric", () => {
-  it("parses a valid rubric with all fields", () => {
+describe("parseChecksFile", () => {
+  it("parses a valid checks file with all fields", () => {
     const yaml = `
 context: "some context"
-assertions:
-  - id: my-check
-    check: "the thing happened"
-    note: "look carefully"
-    model: claude-sonnet-4-5
+checks:
+  - my-check:
+      check: "the thing happened"
+      note: "look carefully"
+      model: claude-sonnet-4-5
 `;
-    const rubric = parseRubric(yaml);
-    expect(rubric.context).toBe("some context");
-    expect(rubric.assertions).toHaveLength(1);
-    expect(rubric.assertions[0]).toEqual({
+    const checksFile = parseChecksFile(yaml);
+    expect(checksFile.context).toBe("some context");
+    expect(checksFile.checks).toHaveLength(1);
+    expect(checksFile.checks[0]).toEqual({
       id: "my-check",
       check: "the thing happened",
       note: "look carefully",
@@ -23,69 +23,81 @@ assertions:
     });
   });
 
-  it("auto-generates IDs when missing", () => {
+  it("parses multiple checks", () => {
     const yaml = `
-assertions:
-  - check: "first"
-  - check: "second"
+checks:
+  - first-check:
+      check: "first"
+  - second-check:
+      check: "second"
 `;
-    const rubric = parseRubric(yaml);
-    expect(rubric.assertions[0].id).toBe("assertion-0");
-    expect(rubric.assertions[1].id).toBe("assertion-1");
-  });
-
-  it("preserves explicit IDs and fills gaps", () => {
-    const yaml = `
-assertions:
-  - id: custom-id
-    check: "first"
-  - check: "second"
-`;
-    const rubric = parseRubric(yaml);
-    expect(rubric.assertions[0].id).toBe("custom-id");
-    expect(rubric.assertions[1].id).toBe("assertion-1");
+    const checksFile = parseChecksFile(yaml);
+    expect(checksFile.checks[0].id).toBe("first-check");
+    expect(checksFile.checks[0].check).toBe("first");
+    expect(checksFile.checks[1].id).toBe("second-check");
+    expect(checksFile.checks[1].check).toBe("second");
   });
 
   it("returns undefined context when absent", () => {
     const yaml = `
-assertions:
-  - check: "first"
+checks:
+  - my-check:
+      check: "first"
 `;
-    const rubric = parseRubric(yaml);
-    expect(rubric.context).toBeUndefined();
+    const checksFile = parseChecksFile(yaml);
+    expect(checksFile.context).toBeUndefined();
   });
 
-  it("throws on empty assertions array", () => {
+  it("throws on empty checks array", () => {
     const yaml = `
-assertions: []
+checks: []
 `;
-    expect(() => parseRubric(yaml)).toThrow();
+    expect(() => parseChecksFile(yaml)).toThrow();
   });
 
   it("throws on missing check field", () => {
     const yaml = `
-assertions:
-  - id: no-check
-    note: "oops"
+checks:
+  - no-check:
+      note: "oops"
 `;
-    expect(() => parseRubric(yaml)).toThrow();
+    expect(() => parseChecksFile(yaml)).toThrow();
   });
 
   it("throws on non-object YAML", () => {
-    expect(() => parseRubric("just a string")).toThrow();
+    expect(() => parseChecksFile("just a string")).toThrow();
   });
 
   it("throws on invalid YAML syntax", () => {
-    expect(() => parseRubric("assertions:\n  - check: [unterminated")).toThrow();
+    expect(() => parseChecksFile("checks:\n  - bad: [unterminated")).toThrow();
+  });
+
+  it("throws when check entry has multiple keys", () => {
+    const yaml = `
+checks:
+  - first-key:
+      check: "something"
+    second-key:
+      check: "other"
+`;
+    expect(() => parseChecksFile(yaml)).toThrow();
+  });
+
+  it("throws when check entry has no keys", () => {
+    const yaml = `
+checks:
+  - check: "bare check without id-as-key"
+`;
+    expect(() => parseChecksFile(yaml)).toThrow();
   });
 });
 
-describe("loadRubric", () => {
-  it("loads and parses the example rubric file", async () => {
-    const rubric = await loadRubric(resolve("examples/haiku/rubric.yaml"));
-    expect(rubric.context).toContain("haiku");
-    expect(rubric.assertions.length).toBeGreaterThanOrEqual(1);
-    expect(rubric.assertions[0].id).toBe("asked-topic");
-    expect(rubric.assertions[0].check).toBeTruthy();
+describe("loadChecksFile", () => {
+  it("loads and parses the example checks file", async () => {
+    const checksFile = await loadChecksFile(resolve("examples/haiku/checks.yaml"));
+    expect(checksFile.context).toContain("haiku");
+    expect(checksFile.checks.length).toBeGreaterThanOrEqual(1);
+    expect(checksFile.checks[0].id).toBe("asked-topic");
+    expect(checksFile.checks[0].check).toBeTruthy();
   });
 });

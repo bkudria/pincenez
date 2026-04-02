@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { parseLintOutput, lintAssertion } from "../src/linter.js";
-import type { Assertion } from "../src/config.js";
+import { parseLintOutput, lintCheck } from "../src/linter.js";
+import type { Check } from "../src/config.js";
 import type { Query, SDKMessage, SDKResultSuccess } from "@anthropic-ai/claude-agent-sdk";
 
 // Mock the Agent SDK
@@ -11,7 +11,7 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
 import { query } from "@anthropic-ai/claude-agent-sdk";
 const mockQuery = vi.mocked(query);
 
-const assertion: Assertion = {
+const testCheck: Check = {
   id: "test-1",
   check: "Output is high quality",
 };
@@ -70,7 +70,7 @@ function asyncMessages(msgs: SDKMessage[]): Query {
   } as unknown as Query;
 }
 
-describe("lintAssertion", () => {
+describe("lintCheck", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -82,7 +82,7 @@ describe("lintAssertion", () => {
       ]),
     );
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result).toEqual({
       id: "test-1",
       check: "Output is high quality",
@@ -90,14 +90,14 @@ describe("lintAssertion", () => {
     });
   });
 
-  it("returns empty issues for clean assertions", async () => {
+  it("returns empty issues for clean checks", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
         resultMessage('{"issues": []}'),
       ]),
     );
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toEqual([]);
   });
 
@@ -108,7 +108,7 @@ describe("lintAssertion", () => {
       ]),
     );
 
-    await lintAssertion(assertion);
+    await lintCheck(testCheck);
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -128,7 +128,7 @@ describe("lintAssertion", () => {
       throw new Error("SDK connection failed");
     });
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].anti_pattern).toBe("error");
     expect(result.issues[0].suggestion).toContain("SDK connection failed");
@@ -139,7 +139,7 @@ describe("lintAssertion", () => {
       throw "raw string error";
     });
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].anti_pattern).toBe("error");
     expect(result.issues[0].suggestion).toContain("raw string error");
@@ -152,7 +152,7 @@ describe("lintAssertion", () => {
       ]),
     );
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].anti_pattern).toBe("error");
   });
@@ -168,7 +168,7 @@ describe("lintAssertion", () => {
       ]),
     );
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toEqual([
       { anti_pattern: "vague", suggestion: "Name the metric" },
     ]);
@@ -185,7 +185,7 @@ describe("lintAssertion", () => {
       ]),
     );
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toEqual([
       { anti_pattern: "compound", suggestion: "Split it" },
     ]);
@@ -212,7 +212,7 @@ describe("lintAssertion", () => {
       ]),
     );
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].anti_pattern).toBe("error");
     expect(result.issues[0].suggestion).toContain("error_unknown");
@@ -224,7 +224,7 @@ describe("lintAssertion", () => {
       asyncMessages([resultMessage("")]),
     );
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].anti_pattern).toBe("error");
     expect(result.issues[0].suggestion).toContain("(empty response)");
@@ -251,7 +251,7 @@ describe("lintAssertion", () => {
       ]),
     );
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].anti_pattern).toBe("error");
     expect(result.issues[0].suggestion).toContain("error_max_turns");
@@ -265,7 +265,7 @@ describe("lintAssertion", () => {
       ]),
     );
 
-    const result = await lintAssertion(assertion);
+    const result = await lintCheck(testCheck);
     expect(result.issues).toHaveLength(1);
     expect(result.issues[0].anti_pattern).toBe("error");
     expect(result.issues[0].suggestion).toContain("some garbage text");
@@ -280,7 +280,7 @@ describe("lintAssertion", () => {
       ]),
     );
 
-    await lintAssertion(assertion);
+    await lintCheck(testCheck);
     expect(process.env.CLAUDECODE).toBeUndefined();
   });
 });

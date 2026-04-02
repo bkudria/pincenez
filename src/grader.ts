@@ -1,8 +1,8 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { Assertion } from "./config.js";
+import type { Check } from "./config.js";
 import { buildGraderPrompt } from "./prompt.js";
 
-export interface AssertionResult {
+export interface CheckResult {
   id: string;
   check: string;
   pass: boolean | null;
@@ -43,19 +43,19 @@ export function parseVerdict(text: string): Verdict | null {
 }
 
 /**
- * Grade a single assertion against an output file using the Agent SDK.
+ * Grade a single check against an output file using the Agent SDK.
  */
-export async function gradeAssertion(
-  assertion: Assertion,
+export async function gradeCheck(
+  check: Check,
   outputPath: string,
   options: {
     model?: string;
     context?: string;
     verbose?: boolean;
   } = {},
-): Promise<AssertionResult> {
-  const model = assertion.model ?? options.model ?? DEFAULT_MODEL;
-  const prompt = buildGraderPrompt(assertion, outputPath, options.context);
+): Promise<CheckResult> {
+  const model = check.model ?? options.model ?? DEFAULT_MODEL;
+  const prompt = buildGraderPrompt(check, outputPath, options.context);
 
   // Prevent nested session errors
   delete process.env.CLAUDECODE;
@@ -103,8 +103,8 @@ export async function gradeAssertion(
         ? sdkError.errors.join("; ")
         : "no error details provided";
       return {
-        id: assertion.id,
-        check: assertion.check,
+        id: check.id,
+        check: check.check,
         pass: null,
         evidence: `error: SDK result ${sdkError.subtype}: ${errorDetail}`,
         cost_usd: costUsd,
@@ -117,8 +117,8 @@ export async function gradeAssertion(
         ? resultText.slice(0, 200)
         : "(empty response)";
       return {
-        id: assertion.id,
-        check: assertion.check,
+        id: check.id,
+        check: check.check,
         pass: null,
         evidence: `error: could not parse structured output from LLM response: ${snippet}`,
         cost_usd: costUsd,
@@ -126,16 +126,16 @@ export async function gradeAssertion(
     }
 
     return {
-      id: assertion.id,
-      check: assertion.check,
+      id: check.id,
+      check: check.check,
       pass: verdict.pass,
       evidence: verdict.evidence,
       cost_usd: costUsd,
     };
   } catch (err) {
     return {
-      id: assertion.id,
-      check: assertion.check,
+      id: check.id,
+      check: check.check,
       pass: null,
       evidence: `error: ${err instanceof Error ? err.message : String(err)}`,
       cost_usd: 0,

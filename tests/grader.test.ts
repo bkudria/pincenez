@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { parseVerdict, gradeAssertion } from "../src/grader.js";
-import type { Assertion } from "../src/config.js";
+import { parseVerdict, gradeCheck } from "../src/grader.js";
+import type { Check } from "../src/config.js";
 import type { Query, SDKMessage, SDKResultSuccess, SDKResultError } from "@anthropic-ai/claude-agent-sdk";
 
 // Mock the Agent SDK
@@ -11,7 +11,7 @@ vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
 import { query } from "@anthropic-ai/claude-agent-sdk";
 const mockQuery = vi.mocked(query);
 
-const assertion: Assertion = {
+const testCheck: Check = {
   id: "test-1",
   check: "The output is correct",
 };
@@ -98,19 +98,19 @@ function asyncMessages(msgs: SDKMessage[]): Query {
   } as unknown as Query;
 }
 
-describe("gradeAssertion", () => {
+describe("gradeCheck", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("returns AssertionResult with pass/evidence on success", async () => {
+  it("returns CheckResult with pass/evidence on success", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
         resultMessage('{"pass": true, "evidence": "looks good"}'),
       ]),
     );
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result).toEqual({
       id: "test-1",
       check: "The output is correct",
@@ -127,7 +127,7 @@ describe("gradeAssertion", () => {
       ]),
     );
 
-    await gradeAssertion(assertion, "/tmp/out.md");
+    await gradeCheck(testCheck, "/tmp/out.md");
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -148,15 +148,15 @@ describe("gradeAssertion", () => {
     );
   });
 
-  it("uses assertion.model over options.model and default", async () => {
+  it("uses check.model over options.model and default", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
         resultMessage('{"pass": true, "evidence": "ok"}'),
       ]),
     );
 
-    await gradeAssertion(
-      { ...assertion, model: "custom-model" },
+    await gradeCheck(
+      { ...testCheck, model: "custom-model" },
       "/tmp/out.md",
       { model: "options-model" },
     );
@@ -168,14 +168,14 @@ describe("gradeAssertion", () => {
     );
   });
 
-  it("uses options.model when assertion has no model", async () => {
+  it("uses options.model when check has no model", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
         resultMessage('{"pass": true, "evidence": "ok"}'),
       ]),
     );
 
-    await gradeAssertion(assertion, "/tmp/out.md", { model: "options-model" });
+    await gradeCheck(testCheck, "/tmp/out.md", { model: "options-model" });
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -191,7 +191,7 @@ describe("gradeAssertion", () => {
       ]),
     );
 
-    await gradeAssertion(assertion, "/tmp/out.md");
+    await gradeCheck(testCheck, "/tmp/out.md");
 
     expect(mockQuery).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -207,7 +207,7 @@ describe("gradeAssertion", () => {
       ]),
     );
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("could not parse structured output");
   });
@@ -217,7 +217,7 @@ describe("gradeAssertion", () => {
       throw new Error("SDK connection failed");
     });
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("SDK connection failed");
   });
@@ -227,7 +227,7 @@ describe("gradeAssertion", () => {
       throw "raw string error";
     });
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("raw string error");
   });
@@ -237,7 +237,7 @@ describe("gradeAssertion", () => {
     msg.total_cost_usd = 0.0042;
     mockQuery.mockReturnValue(asyncMessages([msg]));
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.cost_usd).toBe(0.0042);
   });
 
@@ -248,7 +248,7 @@ describe("gradeAssertion", () => {
       ]),
     );
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("error_max_structured_output_retries");
     expect(result.evidence).toContain("failed after 3 retries");
@@ -261,7 +261,7 @@ describe("gradeAssertion", () => {
       ]),
     );
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("error_unknown");
     expect(result.evidence).toContain("no error details provided");
@@ -272,7 +272,7 @@ describe("gradeAssertion", () => {
       asyncMessages([resultMessage("")]),
     );
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("(empty response)");
   });
@@ -284,7 +284,7 @@ describe("gradeAssertion", () => {
       ]),
     );
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("error_during_execution");
     expect(result.evidence).toContain("permission denied");
@@ -295,7 +295,7 @@ describe("gradeAssertion", () => {
     (msg as Record<string, unknown>).structured_output = { pass: true, evidence: "found it in structured_output" };
     mockQuery.mockReturnValue(asyncMessages([msg]));
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBe(true);
     expect(result.evidence).toBe("found it in structured_output");
   });
@@ -305,7 +305,7 @@ describe("gradeAssertion", () => {
     (msg as Record<string, unknown>).structured_output = { pass: true, evidence: "from structured_output" };
     mockQuery.mockReturnValue(asyncMessages([msg]));
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBe(true);
     expect(result.evidence).toBe("from structured_output");
   });
@@ -317,7 +317,7 @@ describe("gradeAssertion", () => {
       ]),
     );
 
-    const result = await gradeAssertion(assertion, "/tmp/out.md");
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("this is plain text not json");
   });
@@ -331,7 +331,7 @@ describe("gradeAssertion", () => {
       ]),
     );
 
-    await gradeAssertion(assertion, "/tmp/out.md");
+    await gradeCheck(testCheck, "/tmp/out.md");
     expect(process.env.CLAUDECODE).toBeUndefined();
   });
 });

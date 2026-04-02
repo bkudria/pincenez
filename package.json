@@ -1,7 +1,7 @@
 {
   "name": "pincenez",
   "version": "0.1.0",
-  "description": "Grade LLM outputs against rubrics using an LLM judge",
+  "description": "Grade LLM outputs against checks files using an LLM judge",
   "type": "module",
   "bin": {
     "pincenez": "./dist/cli.js"

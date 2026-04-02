@@ -1,6 +1,6 @@
 import { stringify as yamlStringify } from "yaml";
-import type { Rubric } from "./config.js";
-import { gradeAssertion, type AssertionResult } from "./grader.js";
+import type { ChecksFile } from "./config.js";
+import { gradeCheck, type CheckResult } from "./grader.js";
 import { writeYamlArrayItem } from "./yaml-utils.js";
 
 export interface RunOptions {
@@ -10,23 +10,23 @@ export interface RunOptions {
 }
 
 /**
- * Run all assertions in parallel, streaming results to stdout as YAML.
+ * Run all checks in parallel, streaming results to stdout as YAML.
  */
 export async function run(
-  rubric: Rubric,
+  checksFile: ChecksFile,
   outputPath: string,
   options: RunOptions = {},
-): Promise<{ results: AssertionResult[]; passRate: number; costUsd: number }> {
-  const { assertions } = rubric;
-  const context = options.context ?? rubric.context;
-  const results: AssertionResult[] = [];
+): Promise<{ results: CheckResult[]; passRate: number; costUsd: number }> {
+  const { checks } = checksFile;
+  const context = options.context ?? checksFile.context;
+  const results: CheckResult[] = [];
 
   // Write YAML array header immediately
-  process.stdout.write("assertions:\n");
+  process.stdout.write("checks:\n");
 
-  // Launch all assertions in parallel, streaming each result on completion
-  const promises = assertions.map((assertion) =>
-    gradeAssertion(assertion, outputPath, {
+  // Launch all checks in parallel, streaming each result on completion
+  const promises = checks.map((check) =>
+    gradeCheck(check, outputPath, {
       model: options.model,
       context,
       verbose: options.verbose,
@@ -47,7 +47,7 @@ export async function run(
 
   // Compute pass rate (null results count as failures)
   const passed = results.filter((r) => r.pass === true).length;
-  const passRate = Math.round((passed / assertions.length) * 100) / 100;
+  const passRate = Math.round((passed / checks.length) * 100) / 100;
 
   // Write summary as proper YAML
   const summary: Record<string, unknown> = { pass_rate: passRate };
@@ -59,4 +59,3 @@ export async function run(
 
   return { results, passRate, costUsd };
 }
-

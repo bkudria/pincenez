@@ -1,5 +1,5 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import type { Assertion } from "./config.js";
+import type { Check } from "./config.js";
 import { buildLintPrompt } from "./lint-prompt.js";
 
 export interface LintIssue {
@@ -54,10 +54,10 @@ export function parseLintOutput(text: string): LintIssue[] | null {
 }
 
 /**
- * Lint a single assertion for quality anti-patterns using an LLM.
+ * Lint a single check for quality anti-patterns using an LLM.
  */
-export async function lintAssertion(
-  assertion: Assertion,
+export async function lintCheck(
+  check: Check,
   options: {
     model?: string;
     context?: string;
@@ -65,7 +65,7 @@ export async function lintAssertion(
   } = {},
 ): Promise<LintResult> {
   const model = options.model ?? DEFAULT_MODEL;
-  const prompt = buildLintPrompt(assertion, options.context);
+  const prompt = buildLintPrompt(check, options.context);
 
   // Prevent nested session errors
   delete process.env.CLAUDECODE;
@@ -108,8 +108,8 @@ export async function lintAssertion(
         ? sdkError.errors.join("; ")
         : "no error details provided";
       return {
-        id: assertion.id,
-        check: assertion.check,
+        id: check.id,
+        check: check.check,
         issues: [{ anti_pattern: "error", suggestion: `SDK result ${sdkError.subtype}: ${errorDetail}` }],
       };
     }
@@ -120,21 +120,21 @@ export async function lintAssertion(
         ? resultText.slice(0, 200)
         : "(empty response)";
       return {
-        id: assertion.id,
-        check: assertion.check,
+        id: check.id,
+        check: check.check,
         issues: [{ anti_pattern: "error", suggestion: `could not parse structured output from LLM response: ${snippet}` }],
       };
     }
 
     return {
-      id: assertion.id,
-      check: assertion.check,
+      id: check.id,
+      check: check.check,
       issues,
     };
   } catch (err) {
     return {
-      id: assertion.id,
-      check: assertion.check,
+      id: check.id,
+      check: check.check,
       issues: [{ anti_pattern: "error", suggestion: `${err instanceof Error ? err.message : String(err)}` }],
     };
   }

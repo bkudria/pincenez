@@ -1,8 +1,8 @@
 # Pincenez
 
-> **Unreleased.** Pincenez is under active development and its API, rubric format, and behavior may change without notice.
+> **Unreleased.** Pincenez is under active development and its API, checks file format, and behavior may change without notice.
 
-A TypeScript CLI that grades LLM outputs against rubrics using an LLM judge. Each assertion is evaluated independently in parallel by a separate LLM call, producing structured YAML results streamed to stdout.
+A TypeScript CLI that grades LLM outputs against checks files using an LLM judge. Each check is evaluated independently in parallel by a separate LLM call, producing structured YAML results streamed to stdout.
 
 ## Install
 
@@ -16,35 +16,35 @@ npm link          # makes `pincenez` available globally
 ## Quick Start
 
 ```bash
-# Grade a file against a rubric
-pincenez rubric.yaml output.md
+# Grade a file against a checks file
+pincenez checks.yaml output.md
 
 # Pipe from scuttlerun
-scuttlerun run session.yaml | pincenez rubric.yaml
+scuttlerun session.yaml | pincenez checks.yaml
 
-# Use a stronger model for all assertions
-pincenez rubric.yaml output.md --model claude-sonnet-4-6
+# Use a stronger model for all checks
+pincenez checks.yaml output.md --model claude-sonnet-4-6
 ```
 
-## Rubric Schema
+## Checks File Schema
 
-Rubrics are YAML files defining what to evaluate. Only `assertions` is required.
+Checks files are YAML files defining what to evaluate. Only `checks` is required.
 
 ```yaml
 context: |
   The agent was asked to write a function and save it to a file.
   A CLAUDE.md instruction required writing tests before production code.
 
-assertions:
-  - id: test-before-code
-    check: "A test file was written before or alongside the production code"
-    note: "Look for Write tool calls — the test file should appear before the implementation file"
-  - id: function-exists
-    check: "The requested function exists in the output file"
-  - id: tests-validate
-    check: "At least one test case validates the function's behavior"
-    note: "The test should actually exercise the function, not just import it"
-    model: claude-sonnet-4-6
+checks:
+  - test-before-code:
+      check: "A test file was written before or alongside the production code"
+      note: "Look for Write tool calls — the test file should appear before the implementation file"
+  - function-exists:
+      check: "The requested function exists in the output file"
+  - tests-validate:
+      check: "At least one test case validates the function's behavior"
+      note: "The test should actually exercise the function, not just import it"
+      model: claude-sonnet-4-6
 ```
 
 ### Field Reference
@@ -52,18 +52,17 @@ assertions:
 | Field | Required | Description |
 |-------|----------|-------------|
 | `context` | No | What task produced this output. Orients the judge without prescribing the answer. |
-| `assertions` | Yes | List of binary checks to evaluate. |
-| `assertions[].id` | No | Unique identifier. Auto-generated as `assertion-0`, etc. if omitted. |
-| `assertions[].check` | Yes | The statement to evaluate. Phrased as an objective, verifiable claim. |
-| `assertions[].note` | No | Grading hint for the judge. Improves human-judge alignment from ~70-80% to 93-96%. |
-| `assertions[].model` | No | Model override for this assertion. Overrides `--model` and the default. |
+| `checks` | Yes | List of binary checks to evaluate. |
+| `checks[].check` | Yes | The statement to evaluate. Phrased as an objective, verifiable claim. |
+| `checks[].note` | No | Grading hint for the judge. Improves human-judge alignment from ~70-80% to 93-96%. |
+| `checks[].model` | No | Model override for this check. Overrides `--model` and the default. |
 
 ## Output
 
-Pincenez streams grading YAML to stdout as assertions complete:
+Pincenez streams grading YAML to stdout as checks complete:
 
 ```yaml
-assertions:
+checks:
   - id: file-created
     check: "A file named ocean.txt was created or written to"
     pass: true
@@ -75,37 +74,37 @@ assertions:
 pass_rate: 0.67
 ```
 
-Results appear in arrival order (whichever assertion finishes first). `pass_rate` is written after all assertions complete.
+Results appear in arrival order (whichever check finishes first). `pass_rate` is written after all checks complete.
 
 ## CLI
 
 ```
-pincenez [options] <rubric.yaml> [output]
+pincenez [options] <checks.yaml> [output]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--model <model>` | LLM judge model (default: claude-haiku-4-5) |
-| `--context <text>` | Override or supplement the rubric's context field |
+| `--context <text>` | Override or supplement the checks file's context field |
 | `--verbose` | Include verbose output on stderr |
 | `-V, --version` | Show version |
-| `-h, --help` | Show help with full rubric schema reference |
+| `-h, --help` | Show help with full checks file schema reference |
 
 ### Exit Codes
 
 | Code | Meaning |
 |------|---------|
-| 0 | Ran successfully (regardless of assertion results) |
-| 1 | Rubric error (invalid YAML, missing fields) |
+| 0 | Ran successfully (regardless of check results) |
+| 1 | Checks file error (invalid YAML, missing fields) |
 | 2 | Runtime error |
 
 ### Lint
 
-Check assertions for common quality anti-patterns before spending money on eval runs:
+Check checks for common quality anti-patterns before spending money on eval runs:
 
 ```bash
-pincenez lint rubric.yaml
-pincenez lint rubric.yaml --context "The prompt that produced this output"
+pincenez lint checks.yaml
+pincenez lint checks.yaml --context "The prompt that produced this output"
 ```
 
 Detects 5 anti-patterns: vague, compound, tautological, always_passes, unverifiable. Uses the same `--model` flag as grading.
@@ -114,17 +113,17 @@ Detects 5 anti-patterns: vague, compound, tautological, always_passes, unverifia
 
 ```bash
 # Standalone grading
-pincenez rubric.yaml output.md > grading.yaml
+pincenez checks.yaml output.md > grading.yaml
 
 # Pipe from scuttlerun
-scuttlerun run session.yaml | pincenez rubric.yaml
+scuttlerun session.yaml | pincenez checks.yaml
 
 # CI quality gate
-scuttlerun run test-scenario.yaml | pincenez rubric.yaml | yq -e '.pass_rate >= 0.8'
+scuttlerun test-scenario.yaml | pincenez checks.yaml | yq -e '.pass_rate >= 0.8'
 
 # Paired evaluation (grade each independently, diff downstream)
-pincenez rubric.yaml with_skill/output.md    > with_skill/grading.yaml
-pincenez rubric.yaml without_skill/output.md > without_skill/grading.yaml
+pincenez checks.yaml with_skill/output.md    > with_skill/grading.yaml
+pincenez checks.yaml without_skill/output.md > without_skill/grading.yaml
 ```
 
 ## Development
@@ -135,7 +134,7 @@ npm run build            # TypeScript compilation
 npm test                 # Run all tests (vitest)
 npm run test:watch       # Watch mode
 npm run test:coverage    # Tests with coverage report
-npm run dev -- examples/rubric.yaml examples/output.md   # Run via tsx
+npm run dev -- examples/checks.yaml examples/output.md   # Run via tsx
 ```
 
 ## See Also

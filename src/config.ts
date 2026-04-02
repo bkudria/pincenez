@@ -2,48 +2,51 @@ import { z } from "zod";
 import { parse as parseYaml } from "yaml";
 import { readFile } from "node:fs/promises";
 
-const AssertionSchema = z.object({
-  id: z.string().optional(),
+const CheckValueSchema = z.object({
   check: z.string(),
   note: z.string().optional(),
   model: z.string().optional(),
 });
 
-const RubricSchema = z.object({
+const ChecksFileRawSchema = z.object({
   context: z.string().optional(),
-  assertions: z.array(AssertionSchema).min(1, "Rubric must have at least one assertion"),
+  checks: z.array(z.record(z.string(), CheckValueSchema)).min(1, "Checks file must have at least one check"),
 });
 
-export type Assertion = z.infer<typeof AssertionSchema> & { id: string };
-export type Rubric = {
+export type Check = z.infer<typeof CheckValueSchema> & { id: string };
+export type ChecksFile = {
   context?: string;
-  assertions: Assertion[];
+  checks: Check[];
 };
 
 /**
- * Parse and validate a rubric YAML file.
- * Auto-generates assertion IDs if missing.
+ * Parse and validate a checks YAML file.
  */
-export async function loadRubric(filePath: string): Promise<Rubric> {
+export async function loadChecksFile(filePath: string): Promise<ChecksFile> {
   const content = await readFile(filePath, "utf8");
-  return parseRubric(content);
+  return parseChecksFile(content);
 }
 
 /**
- * Parse and validate rubric from a YAML string.
+ * Parse and validate checks from a YAML string.
+ * Each check entry is a single-key map: { id: { check, note?, model? } }
  */
-export function parseRubric(yamlContent: string): Rubric {
+export function parseChecksFile(yamlContent: string): ChecksFile {
   const raw = parseYaml(yamlContent);
-  const parsed = RubricSchema.parse(raw);
+  const parsed = ChecksFileRawSchema.parse(raw);
 
-  // Auto-generate IDs for assertions that don't have them
-  const assertions: Assertion[] = parsed.assertions.map((a, i) => ({
-    ...a,
-    id: a.id ?? `assertion-${i}`,
-  }));
+  const checks: Check[] = parsed.checks.map((entry) => {
+    const keys = Object.keys(entry);
+    if (keys.length !== 1) {
+      throw new Error(`Each check entry must have exactly one key (the ID), got ${keys.length}: ${keys.join(", ")}`);
+    }
+    const id = keys[0];
+    const value = entry[id];
+    return { id, ...value };
+  });
 
   return {
     context: parsed.context,
-    assertions,
+    checks,
   };
 }

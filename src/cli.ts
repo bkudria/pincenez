@@ -5,83 +5,83 @@ import { writeFile, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { loadRubric } from "./config.js";
+import { loadChecksFile } from "./config.js";
 import { run } from "./runner.js";
 import { runLint } from "./lint-runner.js";
 
 const HELP_TEXT = `
-Rubric Schema (YAML):
-  Only 'assertions' is required. All other fields are optional.
+Checks File Schema (YAML):
+  Only 'checks' is required. All other fields are optional.
 
     # --- Context (optional) ---
     context: |                              # What task produced this output
       The agent was asked to write a haiku
       about the ocean and save it to ocean.txt
 
-    # --- Assertions ---
-    assertions:
-      - id: file-created                    # Unique ID (auto-generated if omitted)
-        check: "ocean.txt was created"      # Binary claim to evaluate (required)
-        note: "Look for Write tool usage"   # Grading hint (optional)
-        model: claude-sonnet-4-6            # Model override (optional)
+    # --- Checks ---
+    checks:
+      - file-created:                       # ID as key (required)
+          check: "ocean.txt was created"    # Binary claim to evaluate (required)
+          note: "Look for Write tool usage" # Grading hint (optional)
+          model: claude-sonnet-4-6          # Model override (optional)
 
   Field Reference:
     context             What task produced this output. Orients the judge.
-    assertions[].id     Unique identifier. Auto: assertion-0, assertion-1, ...
-    assertions[].check  The statement to evaluate. Objective, verifiable claim.
-    assertions[].note   Grading hint. Improves human-judge alignment significantly.
-    assertions[].model  Model override. Overrides --model and the default.
+    checks[].{id}       Map key is the unique check identifier.
+    checks[].check      The statement to evaluate. Objective, verifiable claim.
+    checks[].note       Grading hint. Improves human-judge alignment significantly.
+    checks[].model      Model override. Overrides --model and the default.
 
 Output Format:
-  Grading YAML is streamed to stdout as assertions complete (arrival order):
+  Grading YAML is streamed to stdout as checks complete (arrival order):
 
-    assertions:
+    checks:
       - id: file-created
         check: "ocean.txt was created"
         pass: true
         evidence: "The agent used Write to create ocean.txt"
     pass_rate: 1
 
-  pass_rate is written after all assertions finish.
+  pass_rate is written after all checks finish.
 
 Examples:
-  # Grade a file against a rubric
-  pincenez rubric.yaml output.md
+  # Grade a file against a checks file
+  pincenez checks.yaml output.md
 
   # Pipe from stdin (e.g. scuttlerun output)
-  scuttlerun run session.yaml | pincenez rubric.yaml
+  scuttlerun session.yaml | pincenez checks.yaml
 
-  # Use a stronger model for all assertions
-  pincenez rubric.yaml output.md --model claude-sonnet-4-6
+  # Use a stronger model for all checks
+  pincenez checks.yaml output.md --model claude-sonnet-4-6
 
   # CI quality gate with yq
-  pincenez rubric.yaml output.md | yq -e '.pass_rate == 1.0'
+  pincenez checks.yaml output.md | yq -e '.pass_rate == 1.0'
 
   # Save results to file
-  pincenez rubric.yaml output.md > grading.yaml
+  pincenez checks.yaml output.md > grading.yaml
 
-  # Lint assertions for quality anti-patterns
-  pincenez lint rubric.yaml
+  # Lint checks for quality anti-patterns
+  pincenez lint checks.yaml
 
 Exit Codes:
-  0   Ran successfully (regardless of assertion results)
-  1   Rubric error (invalid YAML, missing fields)
+  0   Ran successfully (regardless of check results)
+  1   Checks file error (invalid YAML, missing fields)
   2   Runtime error (API failure, etc.)`;
 
 async function gradeAction(
-    rubricFile: string | undefined,
+    checksFileArg: string | undefined,
     outputArg: string | undefined,
     opts: { model?: string; context?: string; verbose?: boolean },
     program: Command,
 ) {
-    if (!rubricFile || rubricFile === "help") {
+    if (!checksFileArg || checksFileArg === "help") {
         program.help();
         return;
     }
 
     try {
-        const rubricPath = resolve(rubricFile);
-        const rubric = await loadRubric(rubricPath);
+        const checksPath = resolve(checksFileArg);
+        const checksFile = await loadChecksFile(checksPath);
 
         let outputPath: string;
         let tempFile: string | undefined;
@@ -100,14 +100,14 @@ async function gradeAction(
         }
 
         try {
-            const { passRate } = await run(rubric, outputPath, {
+            const { passRate } = await run(checksFile, outputPath, {
                 model: opts.model,
                 context: opts.context,
                 verbose: opts.verbose,
             });
 
             if (opts.verbose) {
-                process.stderr.write(`[pincenez] Done: ${rubric.assertions.length} assertions, pass_rate=${passRate}\n`);
+                process.stderr.write(`[pincenez] Done: ${checksFile.checks.length} checks, pass_rate=${passRate}\n`);
             }
         } finally {
             if (tempFile) {
@@ -116,7 +116,7 @@ async function gradeAction(
         }
     } catch (err) {
         if (err instanceof Error && err.name === "ZodError") {
-            process.stderr.write(`[pincenez] Rubric error: ${err.message}\n`);
+            process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
             process.exit(1);
         }
         process.stderr.write(
@@ -127,14 +127,14 @@ async function gradeAction(
 }
 
 async function lintAction(
-    rubricFile: string,
+    checksFileArg: string,
     opts: { model?: string; context?: string; verbose?: boolean },
 ) {
     try {
-        const rubricPath = resolve(rubricFile);
-        const rubric = await loadRubric(rubricPath);
+        const checksPath = resolve(checksFileArg);
+        const checksFile = await loadChecksFile(checksPath);
 
-        const { assertionsWithIssues } = await runLint(rubric, {
+        const { checksWithIssues } = await runLint(checksFile, {
             model: opts.model,
             context: opts.context,
             verbose: opts.verbose,
@@ -142,12 +142,12 @@ async function lintAction(
 
         if (opts.verbose) {
             process.stderr.write(
-                `[pincenez] Lint done: ${rubric.assertions.length} assertions, ${assertionsWithIssues} with issues\n`,
+                `[pincenez] Lint done: ${checksFile.checks.length} checks, ${checksWithIssues} with issues\n`,
             );
         }
     } catch (err) {
         if (err instanceof Error && err.name === "ZodError") {
-            process.stderr.write(`[pincenez] Rubric error: ${err.message}\n`);
+            process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
             process.exit(1);
         }
         process.stderr.write(
@@ -163,29 +163,29 @@ async function main() {
     program
         .name("pincenez")
         .description(
-            "Grade LLM outputs against rubrics using an LLM judge.\n" +
-            "Evaluates each assertion independently in parallel.\n" +
+            "Grade LLM outputs against checks using an LLM judge.\n" +
+            "Evaluates each check independently in parallel.\n" +
             "Returns structured YAML to stdout.",
         )
         .version("0.1.0")
-        .argument("[rubric.yaml]", "Rubric file defining assertions to evaluate")
+        .argument("[checks.yaml]", "Checks file defining checks to evaluate")
         .argument("[output]", "File or directory for the LLM to read and evaluate (default: stdin)")
         .option("--model <model>", "LLM judge model (default: claude-haiku-4-5)")
-        .option("--context <text>", "Override or supplement the rubric's context field")
+        .option("--context <text>", "Override or supplement the checks file's context field")
         .option("-v, --verbose", "Include verbose output on stderr")
         .addHelpText("after", HELP_TEXT)
-        .action(async (rubricFile: string | undefined, outputArg: string | undefined, opts) => {
-            await gradeAction(rubricFile, outputArg, opts, program);
+        .action(async (checksFileArg: string | undefined, outputArg: string | undefined, opts) => {
+            await gradeAction(checksFileArg, outputArg, opts, program);
         });
 
     program
-        .command("lint <rubric.yaml>")
-        .description("Check assertion quality for common anti-patterns")
+        .command("lint <checks.yaml>")
+        .description("Check quality for common anti-patterns")
         .option("--model <model>", "LLM model for lint analysis (default: claude-haiku-4-5)")
-        .option("--context <text>", "Scenario prompt (helps detect tautological assertions)")
+        .option("--context <text>", "Scenario prompt (helps detect tautological checks)")
         .option("-v, --verbose", "Include verbose output on stderr")
-        .action(async (rubricFile: string, opts) => {
-            await lintAction(rubricFile, opts);
+        .action(async (checksFileArg: string, opts) => {
+            await lintAction(checksFileArg, opts);
         });
 
     await program.parseAsync(process.argv);
