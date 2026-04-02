@@ -1,0 +1,59 @@
+---
+project: /tmp/scuttlerun-project-example
+
+conversation:
+  - user: |
+      Write a haiku for the user
+
+  - thinking: |
+      The user is asking me to write a haiku. I can see from the available skills
+      that there's a "haiku-writer" skill that is specifically designed for this
+      purpose. The skill instructions say I must ask for a topic first before
+      composing anything.
+
+  - assistant: |
+      I'll use the haiku-writer skill to write a haiku for you. First, I need
+      to know what topic you'd like.
+
+  - tool: AskUserQuestion
+    input:
+      questions:
+        - question: "What topic would you like the haiku to be about?"
+          options:
+            - label: "Nature"
+            - label: "Emotions"
+            - label: "Technology"
+            - label: "Other"
+
+  - oracle: ask_user
+    answers:
+      "What topic would you like the haiku to be about?": "Nature"
+    reasoning: |
+      Selecting Nature as it's a classic and well-suited haiku topic.
+
+  - assistant: |
+      Great choice! Here's a nature-themed haiku:
+
+      Morning dew glistens
+      Sunlight breaks through ancient trees
+      Life awakens here
+
+      Let me save this to a file.
+
+  - tool: Write
+    path: /tmp/scuttlerun-project-example/haiku.txt
+
+  - assistant: |
+      Done! I've written a nature-themed haiku and saved it to haiku.txt.
+      The haiku follows the traditional 5-7-5 syllable structure.
+
+  - oracle: turn_policy
+    decision: end
+    reasoning: |
+      The agent asked for a topic, composed a haiku following the 5-7-5 pattern,
+      and saved it to a file. The task is complete.
+
+turns: 3
+tool_calls: 2
+files_written:
+  - /tmp/scuttlerun-project-example/haiku.txt

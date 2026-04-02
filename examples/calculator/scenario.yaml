@@ -1,0 +1,17 @@
+version: "1"
+
+prompt: |
+  Build a calculator module in TypeScript with add, subtract, multiply,
+  and divide functions. Export them from calculator.ts. Then write tests.
+
+tools:
+  - Read
+  - Write
+  - Bash
+
+user:
+  turn_policy: reactive
+  max_user_turns: 2
+  persona: |
+    You care about edge cases. After seeing the initial implementation,
+    ask about division by zero handling if it wasn't addressed.

@@ -1,0 +1,13 @@
+context: |
+  The agent was asked to write an isPrime function and save it to prime.js.
+  A CLAUDE.md instruction required writing tests before production code.
+
+assertions:
+  - id: test-before-code
+    check: A test file was written before or alongside the production code
+    note: Look for Write tool calls — the test file should appear before the implementation file
+  - id: function-exists
+    check: The isPrime function exists in prime.js
+  - id: tests-validate
+    check: At least one test case validates isPrime with both prime and non-prime inputs
+    note: The test should actually exercise the function, not just import it

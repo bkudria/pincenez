@@ -1,0 +1,18 @@
+context: |
+  The agent was asked to build a calculator module in TypeScript with add,
+  subtract, multiply, and divide functions, then write tests.
+
+assertions:
+  - id: divide-guards-zero
+    check: "The divide function explicitly guards against division by zero"
+    note: "Look for a conditional check — not just letting TypeScript return Infinity"
+  - id: typed-parameters
+    check: "All function parameters have explicit TypeScript number type annotations"
+  - id: return-types
+    check: "All functions have explicit return type annotations"
+  - id: tests-verify-results
+    check: "Tests assert specific expected values for each arithmetic operation"
+    note: "Look for assertions like expect(add(2,3)).toBe(5), not just calling the functions"
+  - id: tests-run-pass
+    check: "The test runner output shows all tests passing with zero failures"
+    note: "Look for Bash tool output containing a passing test summary"
