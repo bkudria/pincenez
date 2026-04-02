@@ -82,7 +82,7 @@ assertions:
 
 describe("loadRubric", () => {
   it("loads and parses the example rubric file", async () => {
-    const rubric = await loadRubric(resolve("examples/rubric.yaml"));
+    const rubric = await loadRubric(resolve("examples/haiku/rubric.yaml"));
     expect(rubric.context).toContain("haiku");
     expect(rubric.assertions.length).toBeGreaterThanOrEqual(1);
     expect(rubric.assertions[0].id).toBe("asked-topic");
