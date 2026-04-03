@@ -23,7 +23,7 @@ Each tool owns one step of the pipeline. They compose via files and stdout.
 
 ## Goals
 
-1. **Single-output grading as the primitive.** Pincenez evaluates ONE output against a checks file. A/B comparison is composed on top — grade each output independently, then diff the results downstream. This prevents cross-contamination (the judge can't be biased by seeing both outputs) and maximizes composability.
+1. **Single-output grading as the primitive.** Pincenez evaluates ONE output against a checks file. This prevents cross-contamination (the judge can't be biased by seeing multiple outputs) and maximizes composability.
 
 2. **Own checks file spec.** Pincenez defines its own YAML schema for checks files, independent of skillcraft's `evals.yaml`. Skillcraft translates its scenarios to pincenez checks files at runtime — a thin mapping layer.
 
@@ -35,8 +35,6 @@ Each tool owns one step of the pipeline. They compose via files and stdout.
 
 ## Non-Goals (for now)
 
-- A/B comparison mode (built on top of single-output grading)
-- Blind comparison (was `comparator.md` in skillcraft — may become a `pincenez` mode later)
 - Cross-iteration trend analysis (stays in skillcraft)
 - Scuttlerun-specific input parsing (pincenez accepts any text; scuttlerun-awareness deferred)
 - Replacing the eval orchestrator (craboodle owns pipeline coordination)

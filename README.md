@@ -121,9 +121,8 @@ scuttlerun session.yaml | pincenez checks.yaml
 # CI quality gate
 scuttlerun test-scenario.yaml | pincenez checks.yaml | yq -e '.pass_rate >= 0.8'
 
-# Paired evaluation (grade each independently, diff downstream)
-pincenez checks.yaml with_skill/output.md    > with_skill/grading.yaml
-pincenez checks.yaml without_skill/output.md > without_skill/grading.yaml
+# Grade a specific output
+pincenez checks.yaml output.md > grading.yaml
 ```
 
 ## Development
