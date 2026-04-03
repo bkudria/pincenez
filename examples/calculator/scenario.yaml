@@ -10,8 +10,7 @@ tools:
   - Bash
 
 user:
-  turn_policy: reactive
-  max_user_turns: 2
+  max_turns: 2
   persona: |
     You care about edge cases. After seeing the initial implementation,
     ask about division by zero handling if it wasn't addressed.

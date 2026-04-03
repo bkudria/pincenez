@@ -47,7 +47,7 @@ conversation:
       Done! I've written a nature-themed haiku and saved it to haiku.txt.
       The haiku follows the traditional 5-7-5 syllable structure.
 
-  - oracle: turn_policy
+  - oracle: turn
     decision: end
     reasoning: |
       The agent asked for a topic, composed a haiku following the 5-7-5 pattern,

@@ -36,7 +36,7 @@ conversation:
       non-prime numbers, handles edge cases like 0, 1, and negative numbers,
       and uses trial division up to the square root for efficiency.
 
-  - oracle: turn_policy
+  - oracle: turn
     decision: end
     reasoning: |
       The agent wrote tests first (following CLAUDE.md), then implemented isPrime
