@@ -4,6 +4,7 @@ interface AntiPattern {
   name: string;
   description: string;
   example: string;
+  fix: string;
 }
 
 const ANTI_PATTERNS: AntiPattern[] = [
@@ -13,6 +14,7 @@ const ANTI_PATTERNS: AntiPattern[] = [
       'Different graders would disagree on pass/fail. Uses subjective terms like "high quality", "correct", "proper", "good", "best practices", "well-structured" without specifying what concretely to check.',
     example:
       '"Output is high quality" → should name the specific quality metric.',
+    fix: '"Output contains a markdown table with at least 3 rows and a header row"',
   },
   {
     name: "compound",
@@ -20,13 +22,15 @@ const ANTI_PATTERNS: AntiPattern[] = [
       'Tests two or more independent things in one check. Contains "AND", "and also", "as well as", or tests multiple distinct behaviors. Each should be its own check.',
     example:
       '"Code uses correct syntax AND includes error handling" → split into two checks.',
+    fix: '(1) "Code uses parameterized queries for SQL access" (2) "Code includes try/catch around database calls"',
   },
   {
     name: "tautological",
     description:
       'Restates the prompt as a check without adding specificity. If the prompt says "write a function" and the check says "output contains a function", that\'s tautological. Good checks test HOW, not WHETHER.',
     example:
-      'Prompt "Write a haiku" → check "Output contains a haiku" (tautological). Better: "Output has exactly 3 lines following 5-7-5 syllable pattern".',
+      'Prompt "Write a haiku" → check "Output contains a haiku" (tautological).',
+    fix: '"Output has exactly 3 lines following 5-7-5 syllable pattern"',
   },
   {
     name: "always_passes",
@@ -34,6 +38,7 @@ const ANTI_PATTERNS: AntiPattern[] = [
       "Tests baseline LLM behavior that would happen without any special skill/config. If Claude would naturally do this without guidance, the check isn't testing anything meaningful.",
     example:
       '"Output is written in English" or "Output contains code" for a coding task.',
+    fix: '"Output uses parameterized queries instead of string concatenation for SQL"',
   },
   {
     name: "unverifiable",
@@ -41,6 +46,7 @@ const ANTI_PATTERNS: AntiPattern[] = [
       'Tests internal state or reasoning that can\'t be observed from the output. References what the agent "understood", "considered", or "thought about" rather than what it produced.',
     example:
       '"Agent understood the requirements deeply" → rewrite as observable behavior.',
+    fix: '"Agent identified the performance bottleneck before proposing optimizations"',
   },
 ];
 
@@ -78,7 +84,8 @@ export function buildLintPrompt(check: Check, context?: string): string {
 
   ANTI_PATTERNS.forEach((ap, i) => {
     parts.push(`${i + 1}. **${ap.name}** — ${ap.description}`);
-    parts.push(`   Example: ${ap.example}`);
+    parts.push(`   Bad:   ${ap.example}`);
+    parts.push(`   Fixed: ${ap.fix}`);
     parts.push(``);
   });
 
@@ -135,7 +142,8 @@ export function getLintRulesText(): string {
   for (const ap of ANTI_PATTERNS) {
     lines.push(`  ${ap.name}`);
     lines.push(`    ${ap.description}`);
-    lines.push(`    Example: ${ap.example}`);
+    lines.push(`    Bad:   ${ap.example}`);
+    lines.push(`    Fixed: ${ap.fix}`);
     lines.push(``);
   }
 

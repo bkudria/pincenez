@@ -22,6 +22,12 @@ describe("buildLintPrompt", () => {
     expect(prompt).toContain("**unverifiable**");
   });
 
+  it("includes fix examples in the LLM prompt", () => {
+    const prompt = buildLintPrompt(baseCheck);
+    expect(prompt).toContain("Fixed:");
+    expect(prompt).toContain("markdown table");
+  });
+
   it("includes context section when provided", () => {
     const prompt = buildLintPrompt(baseCheck, "  Write a haiku about nature  ");
     expect(prompt).toContain("## Scenario Context");
@@ -86,6 +92,21 @@ describe("getLintRulesText", () => {
     expect(rules).toContain("baseline");
     // unverifiable description
     expect(rules).toContain("internal state");
+  });
+
+  it("contains fix examples for each anti-pattern", () => {
+    const rules = getLintRulesText();
+    expect(rules).toContain("Fixed:");
+    // vague fix
+    expect(rules).toContain("markdown table");
+    // compound fix
+    expect(rules).toContain("parameterized queries for SQL");
+    // tautological fix
+    expect(rules).toContain("5-7-5 syllable pattern");
+    // always_passes fix
+    expect(rules).toContain("string concatenation");
+    // unverifiable fix
+    expect(rules).toContain("performance bottleneck");
   });
 
   it("does not contain check-specific interpolation", () => {
