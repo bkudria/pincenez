@@ -159,8 +159,10 @@ pincenez checks.yaml output.md | yq -e '.pass_rate == 1.0'
 Check quality before running evaluations. Catches anti-patterns that cause unreliable or misleading results.
 
 ```
-pincenez lint <checks.yaml> [--model <model>] [--context <text>]
+pincenez lint [checks.yaml] [--model <model>] [--context <text>]
 ```
+
+Run with no arguments or `--help` to see the full anti-pattern definitions with examples and check-writing guidance.
 
 ### Anti-Patterns Detected
 

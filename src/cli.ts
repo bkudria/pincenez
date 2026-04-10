@@ -8,6 +8,7 @@ import { join } from "node:path";
 import { loadChecksFile } from "./config.js";
 import { run } from "./runner.js";
 import { runLint } from "./lint-runner.js";
+import { getLintRulesText } from "./lint-prompt.js";
 
 const HELP_TEXT = `
 Checks File Schema (YAML):
@@ -127,9 +128,15 @@ async function gradeAction(
 }
 
 async function lintAction(
-    checksFileArg: string,
+    checksFileArg: string | undefined,
     opts: { model?: string; context?: string; verbose?: boolean },
+    lintCmd: Command,
 ) {
+    if (!checksFileArg) {
+        lintCmd.help();
+        return;
+    }
+
     try {
         const checksPath = resolve(checksFileArg);
         const checksFile = await loadChecksFile(checksPath);
@@ -178,14 +185,15 @@ async function main() {
             await gradeAction(checksFileArg, outputArg, opts, program);
         });
 
-    program
-        .command("lint <checks.yaml>")
+    const lintCmd = program
+        .command("lint [checks.yaml]")
         .description("Check quality for common anti-patterns")
         .option("--model <model>", "LLM model for lint analysis (default: claude-haiku-4-5)")
         .option("--context <text>", "Scenario prompt (helps detect tautological checks)")
         .option("-v, --verbose", "Include verbose output on stderr")
-        .action(async (checksFileArg: string, opts) => {
-            await lintAction(checksFileArg, opts);
+        .addHelpText("after", getLintRulesText())
+        .action(async (checksFileArg: string | undefined, opts) => {
+            await lintAction(checksFileArg, opts, lintCmd);
         });
 
     await program.parseAsync(process.argv);

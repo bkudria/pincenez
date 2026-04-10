@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildLintPrompt } from "../src/lint-prompt.js";
+import { buildLintPrompt, getLintRulesText } from "../src/lint-prompt.js";
 import type { Check } from "../src/config.js";
 
 const baseCheck: Check = {
@@ -61,5 +61,46 @@ describe("buildLintPrompt", () => {
   it("includes self-consistency rule", () => {
     const prompt = buildLintPrompt(baseCheck);
     expect(prompt).toContain("suggestions must not introduce other anti-patterns");
+  });
+});
+
+describe("getLintRulesText", () => {
+  it("contains all five anti-pattern names", () => {
+    const rules = getLintRulesText();
+    expect(rules).toContain("vague");
+    expect(rules).toContain("compound");
+    expect(rules).toContain("tautological");
+    expect(rules).toContain("always_passes");
+    expect(rules).toContain("unverifiable");
+  });
+
+  it("contains descriptions and examples for each anti-pattern", () => {
+    const rules = getLintRulesText();
+    // vague example
+    expect(rules).toContain("high quality");
+    // compound example
+    expect(rules).toContain("split");
+    // tautological description
+    expect(rules).toContain("prompt");
+    // always_passes description
+    expect(rules).toContain("baseline");
+    // unverifiable description
+    expect(rules).toContain("internal state");
+  });
+
+  it("does not contain check-specific interpolation", () => {
+    const rules = getLintRulesText();
+    expect(rules).not.toContain("## Check to Analyze");
+    expect(rules).not.toContain("**Check:**");
+  });
+
+  it("stays in sync with buildLintPrompt anti-patterns", () => {
+    const rules = getLintRulesText();
+    const prompt = buildLintPrompt(baseCheck);
+    // Both should reference the same 5 anti-patterns
+    for (const name of ["vague", "compound", "tautological", "always_passes", "unverifiable"]) {
+      expect(rules).toContain(name);
+      expect(prompt).toContain(name);
+    }
   });
 });
