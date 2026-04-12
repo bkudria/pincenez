@@ -48,6 +48,14 @@ const ANTI_PATTERNS: AntiPattern[] = [
       '"Agent understood the requirements deeply" → rewrite as observable behavior.',
     fix: '"Agent identified the performance bottleneck before proposing optimizations"',
   },
+  {
+    name: "over_specific",
+    description:
+      'Prescribes a single implementation means when the intent is about the outcome. Names a specific function, operator, or tool as THE required approach when multiple valid alternatives exist. Signals: "uses [specific function]" as a requirement, "not [alternative]" framing that assumes only one alternative.',
+    example:
+      '"Uses eval-all for multi-file merge" — load() with glob also works.',
+    fix: '"Produces a merged YAML document combining arrays from both input files"',
+  },
 ];
 
 /**
@@ -124,6 +132,9 @@ export function buildLintPrompt(check: Check, context?: string): string {
   );
   parts.push(
     `- For always_passes, consider whether a general-purpose LLM would typically do this without special instruction.`,
+  );
+  parts.push(
+    `- For over_specific, do NOT flag checks where the named approach is the only correct one or the alternative is a security/correctness anti-pattern (e.g., "uses parameterized queries not string concatenation" is legitimately specific because the alternative is a vulnerability). Only flag when multiple valid approaches exist and the check mandates one.`,
   );
 
   return parts.join("\n");

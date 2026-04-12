@@ -173,6 +173,7 @@ Run with no arguments or `--help` to see the full anti-pattern definitions with 
 | **tautological** | Restates the prompt without adding specificity (requires `--context`) |
 | **always_passes** | Tests baseline LLM behavior rather than skill/config-specific value |
 | **unverifiable** | Tests internal state rather than observable output |
+| **over_specific** | Prescribes a single implementation when multiple valid alternatives exist (e.g., "uses eval-all" when load() also works) |
 
 ### Lint Output
 
