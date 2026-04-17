@@ -22,7 +22,7 @@ const ANTI_PATTERNS: AntiPattern[] = [
       'Tests two or more independent things in one check. Contains "AND", "and also", "as well as", or tests multiple distinct behaviors. Each should be its own check.',
     example:
       '"Code uses correct syntax AND includes error handling" → split into two checks.',
-    fix: '(1) "Code uses parameterized queries for SQL access" (2) "Code includes try/catch around database calls"',
+    fix: '(1) "Response body is valid JSON" (2) "Response includes a \\"next_cursor\\" field for pagination"',
   },
   {
     name: "tautological",
@@ -38,7 +38,7 @@ const ANTI_PATTERNS: AntiPattern[] = [
       "Tests baseline LLM behavior that would happen without any special skill/config. If Claude would naturally do this without guidance, the check isn't testing anything meaningful.",
     example:
       '"Output is written in English" or "Output contains code" for a coding task.',
-    fix: '"Output uses parameterized queries instead of string concatenation for SQL"',
+    fix: '"Output uses the test-first pattern taught in the skill\'s TDD reference (not a generic `it.todo`)"',
   },
   {
     name: "unverifiable",
@@ -134,7 +134,7 @@ export function buildLintPrompt(check: Check, context?: string): string {
     `- For always_passes, consider whether a general-purpose LLM would typically do this without special instruction.`,
   );
   parts.push(
-    `- For over_specific, do NOT flag checks where the named approach is the only correct one or the alternative is a security/correctness anti-pattern (e.g., "uses parameterized queries not string concatenation" is legitimately specific because the alternative is a vulnerability). Only flag when multiple valid approaches exist and the check mandates one.`,
+    `- For over_specific, do NOT flag checks where the alternative approach would be a security vulnerability, a correctness violation, or a contract breach — not just a stylistic preference. A check like "uses approach X, not approach Y" is legitimately specific ONLY when Y would produce an objectively wrong outcome (e.g. a known vulnerability class, a protocol violation, or a silently-wrong computation). Only flag when multiple valid approaches exist and the check mandates one for non-correctness reasons.`,
   );
 
   return parts.join("\n");

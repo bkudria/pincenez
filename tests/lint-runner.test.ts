@@ -14,7 +14,7 @@ const mockLintCheck = vi.mocked(lintCheck);
 const checksFile: ChecksFile = {
   checks: [
     { id: "a1", check: "Output is high quality" },
-    { id: "a2", check: "Code uses parameterized queries" },
+    { id: "a2", check: "Handler returns a 200 response" },
     { id: "a3", check: "Code works AND handles errors" },
   ],
 };

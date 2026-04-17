@@ -188,7 +188,7 @@ async function main() {
     const lintCmd = program
         .command("lint [checks.yaml]")
         .description("Check quality for common anti-patterns")
-        .option("--model <model>", "LLM model for lint analysis (default: claude-haiku-4-5)")
+        .option("--model <model>", "LLM model for lint analysis (default: claude-sonnet-4-6)")
         .option("--context <text>", "Scenario prompt (helps detect tautological checks)")
         .option("-v, --verbose", "Include verbose output on stderr")
         .addHelpText("after", getLintRulesText())

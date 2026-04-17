@@ -107,12 +107,12 @@ describe("getLintRulesText", () => {
     expect(rules).toContain("Fixed:");
     // vague fix
     expect(rules).toContain("markdown table");
-    // compound fix
-    expect(rules).toContain("parameterized queries for SQL");
+    // compound fix — HTTP-oriented example
+    expect(rules).toContain("next_cursor");
     // tautological fix
     expect(rules).toContain("5-7-5 syllable pattern");
-    // always_passes fix
-    expect(rules).toContain("string concatenation");
+    // always_passes fix — uses skill-added value, not baseline LLM behavior
+    expect(rules).toContain("taught in the skill");
     // unverifiable fix
     expect(rules).toContain("performance bottleneck");
     // over_specific fix

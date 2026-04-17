@@ -128,7 +128,7 @@ Options:
 - **LLM gets Read-only tool access.** The LLM reads the output file (or directory) to evaluate each check. Pincenez handles all output writing.
 - **Structured output.** Results are extracted via function calling / JSON schema, not free-text parsing. Each call returns `{ pass: boolean, evidence: string }`.
 - **Exit code = operational success.** Exit 0 if pincenez ran successfully. Exit non-zero only for errors (bad checks file, API failure, etc.). Check failures are data, not errors.
-- **Default model: claude-haiku-4-5.** Cheapest and fastest. Adequate for most binary checks. Use `--model` globally or `model` per-check for stronger models on nuanced checks.
+- **Default model: claude-haiku-4-5 for grading.** Cheapest and fastest. Adequate for most binary checks. Use `--model` globally or `model` per-check for stronger models on nuanced checks. (Lint uses claude-sonnet-4-6 by default — see Lint section.)
 
 ## Usage Examples
 
@@ -163,6 +163,8 @@ pincenez lint [checks.yaml] [--model <model>] [--context <text>]
 ```
 
 Run with no arguments or `--help` to see the full anti-pattern definitions with examples and check-writing guidance.
+
+**Default model: claude-sonnet-4-6.** Lint uses a stronger model than grading by default because anti-pattern detection requires subtle judgment (e.g., distinguishing tautological restatement from legitimate specificity). Override with `--model`.
 
 ### Anti-Patterns Detected
 

@@ -35,6 +35,6 @@ Data flow: `CLI → loadChecksFile() → run() → gradeCheck() (parallel, one p
 - **One LLM call per check** — prevents cross-contamination between verdicts
 - **Parallel by default** — N checks = N concurrent LLM calls via `Promise.allSettled`
 - **Exit code 0 = operational success** — check failures are data, not errors. Exit 1 = checks file error, Exit 2 = runtime error.
-- **Default model: claude-haiku-4-5** — cheapest/fastest. Per-check `model` field overrides `--model` flag.
+- **Default model: claude-haiku-4-5 for grading** — cheapest/fastest. Per-check `model` field overrides `--model` flag. Lint defaults to claude-sonnet-4-6 for stronger anti-pattern judgment.
 - **Agent SDK with Read-only tools** — LLM can read the output file but not write anything
 - **ESM throughout** — `"type": "module"` in package.json, `NodeNext` module resolution. Imports use `.js` extensions.

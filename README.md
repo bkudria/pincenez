@@ -107,7 +107,7 @@ pincenez lint checks.yaml
 pincenez lint checks.yaml --context "The prompt that produced this output"
 ```
 
-Detects 5 anti-patterns: vague, compound, tautological, always_passes, unverifiable. Uses the same `--model` flag as grading.
+Detects 6 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific. Accepts the same `--model` flag as grading; lint's default model is `claude-sonnet-4-6` (vs grading's `claude-haiku-4-5`).
 
 ## Composition
 
