@@ -28,9 +28,9 @@ describe("writeYamlArrayItem", () => {
     writeYamlArrayItem({ id: "a1", check: "is good", pass: false });
 
     const lines = written.trimEnd().split("\n");
-    expect(lines[0]).toMatch(/^  - /);
+    expect(lines[0]).toMatch(/^ {2}- /);
     for (const line of lines.slice(1)) {
-      expect(line).toMatch(/^    /);
+      expect(line).toMatch(/^ {4}/);
     }
   });
 

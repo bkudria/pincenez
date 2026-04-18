@@ -9,6 +9,7 @@ export default [
       parserOptions: {
         projectService: {
           allowDefaultProject: ["tests/*.test.ts"],
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
         },
         tsconfigRootDir: import.meta.dirname,
       },

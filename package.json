@@ -15,19 +15,19 @@
     "dev": "tsx src/cli.ts"
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.2.72",
-    "commander": "^13.0.0",
-    "yaml": "^2.7.0",
+    "@anthropic-ai/claude-agent-sdk": "^0.2.114",
+    "commander": "^14.0.3",
+    "yaml": "^2.8.3",
     "zod": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@types/node": "^25.4.0",
-    "@vitest/coverage-v8": "^3.2.4",
-    "eslint": "^10.1.0",
+    "@types/node": "^25.6.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "eslint": "^10.2.1",
     "tsx": "^4.19.0",
-    "typescript": "^5.7.0",
-    "typescript-eslint": "^8.57.2",
-    "vitest": "^3.0.0"
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.58.2",
+    "vitest": "^4.1.4"
   }
 }
