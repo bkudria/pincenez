@@ -81,6 +81,7 @@ export async function lintCheck(
         maxTurns: 10,
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
+        persistSession: false,
         outputFormat: {
           type: "json_schema",
           schema: LINT_SCHEMA,

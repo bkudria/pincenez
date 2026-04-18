@@ -75,6 +75,22 @@ describe("lintCheck", () => {
     vi.clearAllMocks();
   });
 
+  it("passes persistSession: false to query", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        resultMessage('{"issues": []}'),
+      ]),
+    );
+
+    await lintCheck(testCheck);
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ persistSession: false }),
+      }),
+    );
+  });
+
   it("returns LintResult with issues on success", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([

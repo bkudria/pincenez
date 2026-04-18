@@ -125,6 +125,22 @@ describe("gradeCheck", () => {
     });
   });
 
+  it("passes persistSession: false to query", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        resultMessage('{"pass": true, "evidence": "ok"}'),
+      ]),
+    );
+
+    await gradeCheck(testCheck, "/tmp/out.md");
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ persistSession: false }),
+      }),
+    );
+  });
+
   it("passes outputFormat with json_schema to query", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([

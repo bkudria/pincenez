@@ -72,6 +72,7 @@ export async function gradeCheck(
         maxTurns: 10,
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
+        persistSession: false,
         outputFormat: {
           type: "json_schema",
           schema: VERDICT_SCHEMA,
