@@ -6,6 +6,7 @@ import { writeYamlArrayItem } from "./yaml-utils.js";
 export interface RunOptions {
   model?: string;
   context?: string;
+  controller?: AbortController;
 }
 
 /**
@@ -28,6 +29,7 @@ export async function run(
     gradeCheck(check, outputPath, {
       model: options.model,
       context,
+      controller: options.controller,
     }).then((result) => {
       results.push(result);
       writeYamlArrayItem({

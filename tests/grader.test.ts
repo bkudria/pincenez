@@ -125,6 +125,23 @@ describe("gradeCheck", () => {
     });
   });
 
+  it("passes abortController to query when provided", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        resultMessage('{"pass": true, "evidence": "ok"}'),
+      ]),
+    );
+
+    const controller = new AbortController();
+    await gradeCheck(testCheck, "/tmp/out.md", { controller });
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ abortController: controller }),
+      }),
+    );
+  });
+
   it("passes persistSession: false to query", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([

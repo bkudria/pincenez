@@ -100,16 +100,29 @@ export async function gradeAction(
             outputPath = tempFile;
         }
 
+        const controller = new AbortController();
+        const sigintHandler = () => {
+            process.stderr.write("[pincenez] Aborting in-flight checks...\n");
+            controller.abort();
+        };
+        process.once("SIGINT", sigintHandler);
+
         try {
             const { passRate } = await run(checksFile, outputPath, {
                 model: opts.model,
                 context: opts.context,
+                controller,
             });
 
             if (opts.verbose) {
                 process.stderr.write(`[pincenez] Done: ${checksFile.checks.length} checks, pass_rate=${passRate}\n`);
             }
+
+            if (controller.signal.aborted) {
+                process.exit(130);
+            }
         } finally {
+            process.removeListener("SIGINT", sigintHandler);
             if (tempFile) {
                 await unlink(tempFile).catch(() => {});
             }
@@ -136,6 +149,13 @@ export async function lintAction(
         return;
     }
 
+    const controller = new AbortController();
+    const sigintHandler = () => {
+        process.stderr.write("[pincenez] Aborting in-flight checks...\n");
+        controller.abort();
+    };
+    process.once("SIGINT", sigintHandler);
+
     try {
         const checksPath = resolve(checksFileArg);
         const checksFile = await loadChecksFile(checksPath);
@@ -143,12 +163,17 @@ export async function lintAction(
         const { checksWithIssues } = await runLint(checksFile, {
             model: opts.model,
             context: opts.context,
+            controller,
         });
 
         if (opts.verbose) {
             process.stderr.write(
                 `[pincenez] Lint done: ${checksFile.checks.length} checks, ${checksWithIssues} with issues\n`,
             );
+        }
+
+        if (controller.signal.aborted) {
+            process.exit(130);
         }
     } catch (err) {
         if (err instanceof Error && err.name === "ZodError") {
@@ -159,6 +184,8 @@ export async function lintAction(
             `[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`,
         );
         process.exit(2);
+    } finally {
+        process.removeListener("SIGINT", sigintHandler);
     }
 }
 

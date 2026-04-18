@@ -63,6 +63,7 @@ export async function lintCheck(
   options: {
     model?: string;
     context?: string;
+    controller?: AbortController;
   } = {},
 ): Promise<LintResult> {
   const model = options.model ?? DEFAULT_MODEL;
@@ -82,6 +83,7 @@ export async function lintCheck(
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
         persistSession: false,
+        abortController: options.controller,
         outputFormat: {
           type: "json_schema",
           schema: LINT_SCHEMA,

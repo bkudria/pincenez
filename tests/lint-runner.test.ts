@@ -113,4 +113,20 @@ describe("runLint", () => {
       expect.objectContaining({ model: "claude-sonnet-4-6" }),
     );
   });
+
+  it("forwards controller to each lintCheck call", async () => {
+    mockLintCheck.mockImplementation(async (check) => ({
+      id: check.id,
+      check: check.check,
+      issues: [],
+    }));
+    const controller = new AbortController();
+
+    await runLint(checksFile, { controller });
+
+    expect(mockLintCheck).toHaveBeenCalledTimes(3);
+    expect(mockLintCheck.mock.calls[0]?.[1]).toEqual(expect.objectContaining({ controller }));
+    expect(mockLintCheck.mock.calls[1]?.[1]).toEqual(expect.objectContaining({ controller }));
+    expect(mockLintCheck.mock.calls[2]?.[1]).toEqual(expect.objectContaining({ controller }));
+  });
 });

@@ -201,4 +201,15 @@ describe("run", () => {
     await run(makeChecksFile(), "/tmp/out.md");
     expect(written).not.toContain("errored:");
   });
+
+  it("forwards controller to each gradeCheck call", async () => {
+    mockGrade.mockImplementation(async (check) => makeResult(check.id, true));
+    const controller = new AbortController();
+
+    await run(makeChecksFile(), "/tmp/out.md", { controller });
+
+    expect(mockGrade).toHaveBeenCalledTimes(2);
+    expect(mockGrade.mock.calls[0]?.[2]).toEqual(expect.objectContaining({ controller }));
+    expect(mockGrade.mock.calls[1]?.[2]).toEqual(expect.objectContaining({ controller }));
+  });
 });

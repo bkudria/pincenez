@@ -53,6 +53,7 @@ export async function gradeCheck(
   options: {
     model?: string;
     context?: string;
+    controller?: AbortController;
   } = {},
 ): Promise<CheckResult> {
   const model = check.model ?? options.model ?? DEFAULT_MODEL;
@@ -73,6 +74,7 @@ export async function gradeCheck(
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
         persistSession: false,
+        abortController: options.controller,
         outputFormat: {
           type: "json_schema",
           schema: VERDICT_SCHEMA,

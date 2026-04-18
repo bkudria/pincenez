@@ -6,6 +6,7 @@ import { writeYamlArrayItem } from "./yaml-utils.js";
 export interface LintRunOptions {
   model?: string;
   context?: string;
+  controller?: AbortController;
 }
 
 /**
@@ -27,6 +28,7 @@ export async function runLint(
     lintCheck(check, {
       model: options.model,
       context,
+      controller: options.controller,
     }).then((result) => {
       results.push(result);
       writeYamlArrayItem({
