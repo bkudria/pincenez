@@ -174,4 +174,15 @@ describe("run", () => {
     await run(makeChecksFile(), "/tmp/out.md");
     expect(written).not.toContain("cost_usd:");
   });
+
+  it("rounds cost_usd to 4 decimal places", async () => {
+    let call = 0;
+    mockGrade.mockImplementation(async (check) => {
+      const cost = call === 0 ? 0.1234567 : 0;
+      call++;
+      return makeResult(check.id, true, "evidence", cost);
+    });
+    await run(makeChecksFile(), "/tmp/out.md");
+    expect(written).toContain("cost_usd: 0.1235");
+  });
 });

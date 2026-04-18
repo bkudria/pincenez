@@ -86,6 +86,10 @@ pass_rate: 0.67
 - Exit code 0 means pincenez ran successfully, regardless of check results. Parse output for pass/fail.
 - YAML output is consistent with YAML input (checks file) — same format throughout the pipeline
 
+### Cost Tracking
+
+Each check's result includes `cost_usd` reflecting the SDK session cost for grading that one check. The summary's `cost_usd` is the sum across all checks in the file. Both per-check and aggregate costs are rounded to 4 decimals.
+
 ## CLI Interface
 
 ```
