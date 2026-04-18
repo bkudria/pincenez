@@ -6,7 +6,6 @@ import { writeYamlArrayItem } from "./yaml-utils.js";
 export interface LintRunOptions {
   model?: string;
   context?: string;
-  verbose?: boolean;
 }
 
 /**
@@ -28,7 +27,6 @@ export async function runLint(
     lintCheck(check, {
       model: options.model,
       context,
-      verbose: options.verbose,
     }).then((result) => {
       results.push(result);
       writeYamlArrayItem({

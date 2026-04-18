@@ -61,7 +61,6 @@ export async function lintCheck(
   options: {
     model?: string;
     context?: string;
-    verbose?: boolean;
   } = {},
 ): Promise<LintResult> {
   const model = options.model ?? DEFAULT_MODEL;

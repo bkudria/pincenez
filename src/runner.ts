@@ -6,7 +6,6 @@ import { writeYamlArrayItem } from "./yaml-utils.js";
 export interface RunOptions {
   model?: string;
   context?: string;
-  verbose?: boolean;
 }
 
 /**
@@ -29,7 +28,6 @@ export async function run(
     gradeCheck(check, outputPath, {
       model: options.model,
       context,
-      verbose: options.verbose,
     }).then((result) => {
       results.push(result);
       writeYamlArrayItem({

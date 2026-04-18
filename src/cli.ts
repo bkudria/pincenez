@@ -104,7 +104,6 @@ async function gradeAction(
             const { passRate } = await run(checksFile, outputPath, {
                 model: opts.model,
                 context: opts.context,
-                verbose: opts.verbose,
             });
 
             if (opts.verbose) {
@@ -144,7 +143,6 @@ async function lintAction(
         const { checksWithIssues } = await runLint(checksFile, {
             model: opts.model,
             context: opts.context,
-            verbose: opts.verbose,
         });
 
         if (opts.verbose) {
@@ -179,7 +177,7 @@ async function main() {
         .argument("[output]", "File or directory for the LLM to read and evaluate (default: stdin)")
         .option("--model <model>", "LLM judge model (default: claude-haiku-4-5)")
         .option("--context <text>", "Override or supplement the checks file's context field")
-        .option("-v, --verbose", "Include verbose output on stderr")
+        .option("-v, --verbose", "Print completion summary to stderr")
         .addHelpText("after", HELP_TEXT)
         .action(async (checksFileArg: string | undefined, outputArg: string | undefined, opts) => {
             await gradeAction(checksFileArg, outputArg, opts, program);
@@ -190,7 +188,7 @@ async function main() {
         .description("Check quality for common anti-patterns")
         .option("--model <model>", "LLM model for lint analysis (default: claude-sonnet-4-6)")
         .option("--context <text>", "Scenario prompt (helps detect tautological checks)")
-        .option("-v, --verbose", "Include verbose output on stderr")
+        .option("-v, --verbose", "Print completion summary to stderr")
         .addHelpText("after", getLintRulesText())
         .action(async (checksFileArg: string | undefined, opts) => {
             await lintAction(checksFileArg, opts, lintCmd);

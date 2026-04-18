@@ -51,7 +51,6 @@ export async function gradeCheck(
   options: {
     model?: string;
     context?: string;
-    verbose?: boolean;
   } = {},
 ): Promise<CheckResult> {
   const model = check.model ?? options.model ?? DEFAULT_MODEL;
