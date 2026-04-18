@@ -49,6 +49,10 @@ export async function run(
 
   // Write summary as proper YAML
   const summary: Record<string, unknown> = { pass_rate: passRate };
+  const erroredCount = results.filter((r) => r.pass === null).length;
+  if (erroredCount > 0) {
+    summary.errored = erroredCount;
+  }
   const costUsdRaw = results.reduce((sum, r) => sum + r.cost_usd, 0);
   const costUsd = Math.round(costUsdRaw * 10000) / 10000;
   if (costUsd > 0) {

@@ -90,6 +90,12 @@ pass_rate: 0.67
 
 Each check's result includes `cost_usd` reflecting the SDK session cost for grading that one check. The summary's `cost_usd` is the sum across all checks in the file. Both per-check and aggregate costs are rounded to 4 decimals.
 
+### Error Semantics
+
+A check with `pass: null` means the grader encountered an SDK error (retries exhausted, malformed response, timeout, or unhandled exception) — not that the check failed. The `evidence` field begins with `error:` in these cases. For aggregate `pass_rate` computation, null results count as not-passed (like `false`).
+
+When any check has `pass: null`, the summary includes `errored: <count>` alongside `pass_rate`. This lets downstream consumers distinguish "the check failed" from "the grader crashed."
+
 ## CLI Interface
 
 ```

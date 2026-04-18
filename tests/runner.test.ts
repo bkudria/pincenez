@@ -185,4 +185,20 @@ describe("run", () => {
     await run(makeChecksFile(), "/tmp/out.md");
     expect(written).toContain("cost_usd: 0.1235");
   });
+
+  it("surfaces errored count when checks have pass: null", async () => {
+    let call = 0;
+    mockGrade.mockImplementation(async (check) => {
+      if (call++ === 0) return makeResult(check.id, null, "error: grader crashed");
+      return makeResult(check.id, true);
+    });
+    await run(makeChecksFile(), "/tmp/out.md");
+    expect(written).toContain("errored: 1");
+  });
+
+  it("omits errored when all checks returned boolean pass", async () => {
+    mockGrade.mockImplementation(async (check) => makeResult(check.id, true));
+    await run(makeChecksFile(), "/tmp/out.md");
+    expect(written).not.toContain("errored:");
+  });
 });
