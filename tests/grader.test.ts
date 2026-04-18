@@ -1,14 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { parseVerdict, gradeCheck } from "../src/grader.js";
+import { buildGraderSystemPrompt, buildGraderUserPrompt } from "../src/prompt.js";
 import type { Check } from "../src/config.js";
 import type { Query, SDKMessage, SDKResultSuccess, SDKResultError } from "@anthropic-ai/claude-agent-sdk";
 
 // Mock the Agent SDK
-vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
-  query: vi.fn(),
-}));
+vi.mock("@anthropic-ai/claude-agent-sdk", async () => {
+  const actual = await vi.importActual<typeof import("@anthropic-ai/claude-agent-sdk")>(
+    "@anthropic-ai/claude-agent-sdk",
+  );
+  return {
+    ...actual,
+    query: vi.fn(),
+  };
+});
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from "@anthropic-ai/claude-agent-sdk";
 const mockQuery = vi.mocked(query);
 
 const testCheck: Check = {
@@ -156,6 +163,24 @@ describe("gradeCheck", () => {
         options: expect.objectContaining({ persistSession: false }),
       }),
     );
+  });
+
+  it("passes static instructions as cache-eligible systemPrompt and per-check content as prompt", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        resultMessage('{"pass": true, "evidence": "ok"}'),
+      ]),
+    );
+
+    await gradeCheck(testCheck, "/tmp/out.md");
+
+    expect(mockQuery).toHaveBeenCalledOnce();
+    const callArgs = mockQuery.mock.calls[0][0];
+    expect(callArgs.options?.systemPrompt).toEqual([
+      buildGraderSystemPrompt(),
+      SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
+    ]);
+    expect(callArgs.prompt).toBe(buildGraderUserPrompt(testCheck, "/tmp/out.md"));
   });
 
   it("passes outputFormat with json_schema to query", async () => {

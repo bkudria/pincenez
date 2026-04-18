@@ -1,8 +1,10 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKResultError } from "@anthropic-ai/claude-agent-sdk";
 import type { Check } from "./config.js";
-import { buildGraderPrompt } from "./prompt.js";
+import { buildGraderSystemPrompt, buildGraderUserPrompt } from "./prompt.js";
 import { formatSdkError } from "./sdk-error.js";
+
+const GRADER_SYSTEM_PROMPT = buildGraderSystemPrompt();
 
 export interface CheckResult {
   id: string;
@@ -57,7 +59,7 @@ export async function gradeCheck(
   } = {},
 ): Promise<CheckResult> {
   const model = check.model ?? options.model ?? DEFAULT_MODEL;
-  const prompt = buildGraderPrompt(check, outputPath, options.context);
+  const prompt = buildGraderUserPrompt(check, outputPath, options.context);
 
   try {
     let resultText = "";
@@ -75,6 +77,7 @@ export async function gradeCheck(
         allowDangerouslySkipPermissions: true,
         persistSession: false,
         abortController: options.controller,
+        systemPrompt: [GRADER_SYSTEM_PROMPT, SYSTEM_PROMPT_DYNAMIC_BOUNDARY],
         outputFormat: {
           type: "json_schema",
           schema: VERDICT_SCHEMA,
