@@ -92,6 +92,15 @@ describe("lintCheck", () => {
     );
   });
 
+  it("captures total_cost_usd from result message", async () => {
+    const msg = resultMessage('{"issues": []}');
+    msg.total_cost_usd = 0.0042;
+    mockQuery.mockReturnValue(asyncMessages([msg]));
+
+    const result = await lintCheck(testCheck);
+    expect(result.cost_usd).toBe(0.0042);
+  });
+
   it("passes persistSession: false to query", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
@@ -120,6 +129,7 @@ describe("lintCheck", () => {
       id: "test-1",
       check: "Output is high quality",
       issues: [{ anti_pattern: "vague", suggestion: "Name the metric" }],
+      cost_usd: 0,
     });
   });
 

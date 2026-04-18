@@ -13,6 +13,7 @@ export interface LintResult {
   id: string;
   check: string;
   issues: LintIssue[];
+  cost_usd: number;
 }
 
 const DEFAULT_MODEL = "claude-sonnet-4-6";
@@ -71,6 +72,7 @@ export async function lintCheck(
 
   try {
     let resultText = "";
+    let costUsd = 0;
     let sdkError: Pick<SDKResultError, "subtype" | "errors" | "terminal_reason" | "permission_denials"> | null = null;
 
     for await (const message of query({
@@ -91,6 +93,8 @@ export async function lintCheck(
       },
     })) {
       if (message.type === "result") {
+        costUsd = message.total_cost_usd;
+
         if (message.subtype === "success") {
           // Prefer structured_output (pre-parsed object) over result (JSON string)
           if (message.structured_output != null) {
@@ -114,6 +118,7 @@ export async function lintCheck(
         id: check.id,
         check: check.check,
         issues: [{ anti_pattern: "error", suggestion: formatSdkError(sdkError) }],
+        cost_usd: costUsd,
       };
     }
 
@@ -126,6 +131,7 @@ export async function lintCheck(
         id: check.id,
         check: check.check,
         issues: [{ anti_pattern: "error", suggestion: `could not parse structured output from LLM response: ${snippet}` }],
+        cost_usd: costUsd,
       };
     }
 
@@ -133,12 +139,14 @@ export async function lintCheck(
       id: check.id,
       check: check.check,
       issues,
+      cost_usd: costUsd,
     };
   } catch (err) {
     return {
       id: check.id,
       check: check.check,
       issues: [{ anti_pattern: "error", suggestion: `${err instanceof Error ? err.message : String(err)}` }],
+      cost_usd: 0,
     };
   }
 }

@@ -15,7 +15,7 @@ export interface LintRunOptions {
 export async function runLint(
   checksFile: ChecksFile,
   options: LintRunOptions = {},
-): Promise<{ results: LintResult[]; checksWithIssues: number }> {
+): Promise<{ results: LintResult[]; checksWithIssues: number; costUsd: number }> {
   const { checks } = checksFile;
   const context = options.context ?? checksFile.context;
   const results: LintResult[] = [];
@@ -44,11 +44,17 @@ export async function runLint(
   await Promise.allSettled(promises);
 
   const checksWithIssues = results.filter((r) => r.issues.length > 0).length;
+  const costUsdRaw = results.reduce((sum, r) => sum + r.cost_usd, 0);
+  const costUsd = Math.round(costUsdRaw * 10000) / 10000;
 
-  process.stdout.write(yamlStringify({
+  const summary: Record<string, unknown> = {
     checks_total: checks.length,
     checks_with_issues: checksWithIssues,
-  }, { lineWidth: 0 }));
+  };
+  if (costUsd > 0) {
+    summary.cost_usd = costUsd;
+  }
+  process.stdout.write(yamlStringify(summary, { lineWidth: 0 }));
 
-  return { results, checksWithIssues };
+  return { results, checksWithIssues, costUsd };
 }

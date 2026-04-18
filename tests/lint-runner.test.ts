@@ -114,6 +114,34 @@ describe("runLint", () => {
     );
   });
 
+  it("aggregates cost_usd into summary, rounded to 4 decimals, omitted when 0", async () => {
+    mockLintCheck.mockImplementation(async (check) => ({
+      id: check.id,
+      check: check.check,
+      issues: [],
+      cost_usd: check.id === "a1" ? 0.0011 : check.id === "a2" ? 0.0023456 : 0,
+    }));
+
+    const { costUsd } = await runLint(checksFile);
+    expect(costUsd).toBe(0.0034);
+
+    const output = stdoutChunks.join("");
+    expect(output).toContain("cost_usd: 0.0034");
+  });
+
+  it("omits cost_usd from summary when total is 0", async () => {
+    mockLintCheck.mockImplementation(async (check) => ({
+      id: check.id,
+      check: check.check,
+      issues: [],
+      cost_usd: 0,
+    }));
+
+    await runLint(checksFile);
+    const output = stdoutChunks.join("");
+    expect(output).not.toContain("cost_usd:");
+  });
+
   it("forwards controller to each lintCheck call", async () => {
     mockLintCheck.mockImplementation(async (check) => ({
       id: check.id,
