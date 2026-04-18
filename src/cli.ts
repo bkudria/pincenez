@@ -69,7 +69,7 @@ Exit Codes:
   1   Checks file error (invalid YAML, missing fields)
   2   Runtime error (API failure, etc.)`;
 
-async function gradeAction(
+export async function gradeAction(
     checksFileArg: string | undefined,
     outputArg: string | undefined,
     opts: { model?: string; context?: string; verbose?: boolean },
@@ -126,7 +126,7 @@ async function gradeAction(
     }
 }
 
-async function lintAction(
+export async function lintAction(
     checksFileArg: string | undefined,
     opts: { model?: string; context?: string; verbose?: boolean },
     lintCmd: Command,
@@ -162,6 +162,7 @@ async function lintAction(
     }
 }
 
+/* v8 ignore start -- Commander wiring; action handlers are tested directly */
 async function main() {
     const program = new Command();
 
@@ -196,11 +197,12 @@ async function main() {
 
     await program.parseAsync(process.argv);
 }
+/* v8 ignore stop */
 
 /**
  * Read all of stdin as a string. Returns empty string if stdin is a TTY.
  */
-async function readStdin(): Promise<string> {
+export async function readStdin(): Promise<string> {
     if (process.stdin.isTTY) return "";
 
     const chunks: Buffer[] = [];
@@ -210,6 +212,7 @@ async function readStdin(): Promise<string> {
     return Buffer.concat(chunks).toString("utf8");
 }
 
+/* v8 ignore start -- module-load-time direct-execution guard */
 // Only run CLI when executed directly
 const isDirectExecution =
     process.argv[1] &&
@@ -219,3 +222,4 @@ const isDirectExecution =
 if (isDirectExecution) {
     main();
 }
+/* v8 ignore stop */
