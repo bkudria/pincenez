@@ -132,6 +132,20 @@ describe("gradeCheck", () => {
     });
   });
 
+  it("ignores non-result messages in the stream", async () => {
+    const nonResult = { type: "system", subtype: "init" } as unknown as SDKMessage;
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        nonResult,
+        resultMessage('{"pass": true, "evidence": "ok"}'),
+      ]),
+    );
+
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
+    expect(result.pass).toBe(true);
+    expect(result.evidence).toBe("ok");
+  });
+
   it("passes abortController to query when provided", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([

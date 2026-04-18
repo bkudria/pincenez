@@ -1,14 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { parseLintOutput, lintCheck } from "../src/linter.js";
+import { buildLintSystemPrompt, buildLintUserPrompt } from "../src/lint-prompt.js";
 import type { Check } from "../src/config.js";
 import type { Query, SDKMessage, SDKResultSuccess } from "@anthropic-ai/claude-agent-sdk";
 
 // Mock the Agent SDK
-vi.mock("@anthropic-ai/claude-agent-sdk", () => ({
-  query: vi.fn(),
-}));
+vi.mock("@anthropic-ai/claude-agent-sdk", async () => {
+  const actual = await vi.importActual<typeof import("@anthropic-ai/claude-agent-sdk")>(
+    "@anthropic-ai/claude-agent-sdk",
+  );
+  return {
+    query: vi.fn(),
+    SYSTEM_PROMPT_DYNAMIC_BOUNDARY: actual.SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
+  };
+});
 
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from "@anthropic-ai/claude-agent-sdk";
 const mockQuery = vi.mocked(query);
 
 const testCheck: Check = {
@@ -73,6 +80,19 @@ function asyncMessages(msgs: SDKMessage[]): Query {
 describe("lintCheck", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it("ignores non-result messages in the stream", async () => {
+    const nonResult = { type: "system", subtype: "init" } as unknown as SDKMessage;
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        nonResult,
+        resultMessage('{"issues": []}'),
+      ]),
+    );
+
+    const result = await lintCheck(testCheck);
+    expect(result.issues).toEqual([]);
   });
 
   it("passes abortController to query when provided", async () => {
@@ -142,6 +162,24 @@ describe("lintCheck", () => {
 
     const result = await lintCheck(testCheck);
     expect(result.issues).toEqual([]);
+  });
+
+  it("passes static instructions as cache-eligible systemPrompt and per-check content as prompt", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        resultMessage('{"issues": []}'),
+      ]),
+    );
+
+    await lintCheck(testCheck);
+
+    expect(mockQuery).toHaveBeenCalledOnce();
+    const callArgs = mockQuery.mock.calls[0][0];
+    expect(callArgs.options?.systemPrompt).toEqual([
+      buildLintSystemPrompt(),
+      SYSTEM_PROMPT_DYNAMIC_BOUNDARY,
+    ]);
+    expect(callArgs.prompt).toBe(buildLintUserPrompt(testCheck));
   });
 
   it("passes outputFormat with json_schema and sufficient maxTurns to query", async () => {

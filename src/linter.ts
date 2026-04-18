@@ -1,8 +1,10 @@
-import { query } from "@anthropic-ai/claude-agent-sdk";
+import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKResultError } from "@anthropic-ai/claude-agent-sdk";
 import type { Check } from "./config.js";
-import { buildLintPrompt } from "./lint-prompt.js";
+import { buildLintSystemPrompt, buildLintUserPrompt } from "./lint-prompt.js";
 import { formatSdkError } from "./sdk-error.js";
+
+const LINT_SYSTEM_PROMPT = buildLintSystemPrompt();
 
 export interface LintIssue {
   anti_pattern: string;
@@ -68,7 +70,7 @@ export async function lintCheck(
   } = {},
 ): Promise<LintResult> {
   const model = options.model ?? DEFAULT_MODEL;
-  const prompt = buildLintPrompt(check, options.context);
+  const prompt = buildLintUserPrompt(check, options.context);
 
   try {
     let resultText = "";
@@ -86,6 +88,7 @@ export async function lintCheck(
         allowDangerouslySkipPermissions: true,
         persistSession: false,
         abortController: options.controller,
+        systemPrompt: [LINT_SYSTEM_PROMPT, SYSTEM_PROMPT_DYNAMIC_BOUNDARY],
         outputFormat: {
           type: "json_schema",
           schema: LINT_SCHEMA,

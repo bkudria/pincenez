@@ -58,10 +58,7 @@ const ANTI_PATTERNS: AntiPattern[] = [
   },
 ];
 
-/**
- * Build the lint prompt for evaluating a single check's quality.
- */
-export function buildLintPrompt(check: Check, context?: string): string {
+export function buildLintSystemPrompt(): string {
   const parts: string[] = [];
 
   parts.push(
@@ -79,9 +76,7 @@ export function buildLintPrompt(check: Check, context?: string): string {
   parts.push(
     `- **creative** — Poetry, prose, design, music. Some subjectivity is inherent. Checks like "thematic progression" or "distinct imagery" are as concrete as this domain allows.`,
   );
-  parts.push(
-    `- **mixed** — Both technical and creative elements.`,
-  );
+  parts.push(`- **mixed** — Both technical and creative elements.`);
   parts.push(``);
   parts.push(
     `Use the detected domain to calibrate your anti-pattern checks. For creative domains, only flag "vague" when the check is genuinely ambiguous to any grader — not when it uses domain-appropriate language that trained readers would evaluate consistently.`,
@@ -96,22 +91,6 @@ export function buildLintPrompt(check: Check, context?: string): string {
     parts.push(`   Fixed: ${ap.fix}`);
     parts.push(``);
   });
-
-  parts.push(`## Check to Analyze`);
-  parts.push(``);
-  parts.push(`**Check:** ${check.check}`);
-  if (check.note) {
-    parts.push(`**Note:** ${check.note}`);
-  }
-  parts.push(``);
-
-  if (context) {
-    parts.push(`## Scenario Context`);
-    parts.push(``);
-    parts.push(`The scenario prompt (for detecting tautological checks):`);
-    parts.push(context.trim());
-    parts.push(``);
-  }
 
   parts.push(`## Rules`);
   parts.push(``);
@@ -139,6 +118,28 @@ export function buildLintPrompt(check: Check, context?: string): string {
 
   return parts.join("\n");
 }
+
+export function buildLintUserPrompt(check: Check, context?: string): string {
+  const parts: string[] = [];
+
+  parts.push(`## Check to Analyze`);
+  parts.push(``);
+  parts.push(`**Check:** ${check.check}`);
+  if (check.note) {
+    parts.push(`**Note:** ${check.note}`);
+  }
+
+  if (context) {
+    parts.push(``);
+    parts.push(`## Scenario Context`);
+    parts.push(``);
+    parts.push(`The scenario prompt (for detecting tautological checks):`);
+    parts.push(context.trim());
+  }
+
+  return parts.join("\n");
+}
+
 
 /**
  * Return a human/agent-readable reference of the lint anti-patterns.

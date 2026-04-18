@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { buildLintPrompt, getLintRulesText } from "../src/lint-prompt.js";
+import {
+  buildLintSystemPrompt,
+  buildLintUserPrompt,
+  getLintRulesText,
+} from "../src/lint-prompt.js";
 import type { Check } from "../src/config.js";
 
 const baseCheck: Check = {
@@ -7,73 +11,79 @@ const baseCheck: Check = {
   check: "The output contains a greeting",
 };
 
-describe("buildLintPrompt", () => {
-  it("includes the check text", () => {
-    const prompt = buildLintPrompt(baseCheck);
-    expect(prompt).toContain("The output contains a greeting");
+describe("buildLintSystemPrompt", () => {
+  it("contains the lint role intro", () => {
+    expect(buildLintSystemPrompt()).toContain("eval check quality analyst");
+  });
+
+  it("includes the domain detection section", () => {
+    const sys = buildLintSystemPrompt();
+    expect(sys).toContain("## Domain Detection");
+    expect(sys).toContain("**technical**");
+    expect(sys).toContain("**creative**");
+    expect(sys).toContain("**mixed**");
   });
 
   it("includes all six anti-pattern definitions", () => {
-    const prompt = buildLintPrompt(baseCheck);
-    expect(prompt).toContain("**vague**");
-    expect(prompt).toContain("**compound**");
-    expect(prompt).toContain("**tautological**");
-    expect(prompt).toContain("**always_passes**");
-    expect(prompt).toContain("**unverifiable**");
-    expect(prompt).toContain("**over_specific**");
+    const sys = buildLintSystemPrompt();
+    expect(sys).toContain("**vague**");
+    expect(sys).toContain("**compound**");
+    expect(sys).toContain("**tautological**");
+    expect(sys).toContain("**always_passes**");
+    expect(sys).toContain("**unverifiable**");
+    expect(sys).toContain("**over_specific**");
   });
 
-  it("includes fix examples in the LLM prompt", () => {
-    const prompt = buildLintPrompt(baseCheck);
-    expect(prompt).toContain("Fixed:");
-    expect(prompt).toContain("markdown table");
+  it("includes the Rules section with self-consistency and over_specific guard", () => {
+    const sys = buildLintSystemPrompt();
+    expect(sys).toContain("## Rules");
+    expect(sys).toContain("suggestions must not introduce other anti-patterns");
+    expect(sys).toContain("legitimately specific");
   });
 
-  it("includes context section when provided", () => {
-    const prompt = buildLintPrompt(baseCheck, "  Write a haiku about nature  ");
-    expect(prompt).toContain("## Scenario Context");
-    expect(prompt).toContain("Write a haiku about nature");
+  it("does not contain dynamic per-check content", () => {
+    const sys = buildLintSystemPrompt();
+    expect(sys).not.toContain("## Check to Analyze");
+    expect(sys).not.toContain("**Check:**");
+    expect(sys).not.toContain("## Scenario Context");
+  });
+});
+
+describe("buildLintUserPrompt", () => {
+  it("includes the check text", () => {
+    const prompt = buildLintUserPrompt(baseCheck);
+    expect(prompt).toContain("The output contains a greeting");
   });
 
-  it("trims context whitespace", () => {
-    const prompt = buildLintPrompt(baseCheck, "  padded  ");
-    expect(prompt).toContain("padded");
-    expect(prompt).not.toContain("  padded  ");
-  });
-
-  it("omits context section when not provided", () => {
-    const prompt = buildLintPrompt(baseCheck);
-    expect(prompt).not.toContain("## Scenario Context");
-  });
-
-  it("includes note when check has one", () => {
+  it("includes the note when present", () => {
     const check: Check = { ...baseCheck, note: "check the header" };
-    const prompt = buildLintPrompt(check);
+    const prompt = buildLintUserPrompt(check);
     expect(prompt).toContain("**Note:** check the header");
   });
 
-  it("omits note when check lacks one", () => {
-    const prompt = buildLintPrompt(baseCheck);
+  it("omits the note when absent", () => {
+    const prompt = buildLintUserPrompt(baseCheck);
     expect(prompt).not.toContain("**Note:**");
   });
 
-  it("includes domain detection section", () => {
-    const prompt = buildLintPrompt(baseCheck);
-    expect(prompt).toContain("## Domain Detection");
-    expect(prompt).toContain("**technical**");
-    expect(prompt).toContain("**creative**");
-    expect(prompt).toContain("**mixed**");
+  it("includes scenario context section when provided", () => {
+    const prompt = buildLintUserPrompt(baseCheck, "  Write a haiku  ");
+    expect(prompt).toContain("## Scenario Context");
+    expect(prompt).toContain("Write a haiku");
+    expect(prompt).not.toContain("  Write a haiku  ");
   });
 
-  it("includes over_specific discrimination rule", () => {
-    const prompt = buildLintPrompt(baseCheck);
-    expect(prompt).toContain("over_specific");
-    expect(prompt).toContain("legitimately specific");
+  it("omits scenario context section when not provided", () => {
+    const prompt = buildLintUserPrompt(baseCheck);
+    expect(prompt).not.toContain("## Scenario Context");
   });
 
-  it("includes self-consistency rule", () => {
-    const prompt = buildLintPrompt(baseCheck);
-    expect(prompt).toContain("suggestions must not introduce other anti-patterns");
+  it("does not contain static instructions or anti-pattern definitions", () => {
+    const prompt = buildLintUserPrompt(baseCheck);
+    expect(prompt).not.toContain("eval check quality analyst");
+    expect(prompt).not.toContain("## Domain Detection");
+    expect(prompt).not.toContain("**vague**");
+    expect(prompt).not.toContain("## Rules");
   });
 });
 
@@ -125,9 +135,9 @@ describe("getLintRulesText", () => {
     expect(rules).not.toContain("**Check:**");
   });
 
-  it("stays in sync with buildLintPrompt anti-patterns", () => {
+  it("stays in sync with buildLintSystemPrompt anti-patterns", () => {
     const rules = getLintRulesText();
-    const prompt = buildLintPrompt(baseCheck);
+    const prompt = buildLintSystemPrompt();
     // Both should reference the same 6 anti-patterns
     for (const name of ["vague", "compound", "tautological", "always_passes", "unverifiable", "over_specific"]) {
       expect(rules).toContain(name);

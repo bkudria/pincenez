@@ -11,10 +11,15 @@ vi.mock("../src/runner.js", () => ({
 vi.mock("../src/lint-runner.js", () => ({
   runLint: vi.fn(),
 }));
+vi.mock("node:fs/promises", async () => {
+  const actual = await vi.importActual<typeof import("node:fs/promises")>("node:fs/promises");
+  return { ...actual, unlink: vi.fn(actual.unlink) };
+});
 
 import { loadChecksFile } from "../src/config.js";
 import { run } from "../src/runner.js";
 import { runLint } from "../src/lint-runner.js";
+import { unlink } from "node:fs/promises";
 import { gradeAction, lintAction, readStdin } from "../src/cli.js";
 
 const mockLoad = vi.mocked(loadChecksFile);
@@ -147,6 +152,48 @@ describe("gradeAction", () => {
     expect(exitSpy).toHaveBeenCalledWith(2);
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("string-error"));
   });
+
+  it("parses --concurrency option and forwards as integer to run", async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: "a", check: "c" }] });
+    mockRun.mockResolvedValue({ results: [], passRate: 1, costUsd: 0 });
+    const program = makeProgramStub();
+    await gradeAction("checks.yaml", "output.md", { concurrency: "5" }, program);
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ concurrency: 5 }),
+    );
+  });
+
+  it("swallows unlink errors when cleaning up the stdin temp file", async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: "a", check: "c" }] });
+    mockRun.mockResolvedValue({ results: [], passRate: 1, costUsd: 0 });
+    const fakeStdin = Readable.from([Buffer.from("stdin-content")]) as unknown as NodeJS.ReadStream;
+    Object.defineProperty(fakeStdin, "isTTY", { value: false, configurable: true });
+    Object.defineProperty(process, "stdin", { value: fakeStdin, configurable: true });
+    const mockedUnlink = vi.mocked(unlink);
+    mockedUnlink.mockRejectedValueOnce(new Error("ENOENT"));
+    const program = makeProgramStub();
+    await gradeAction("checks.yaml", undefined, {}, program);
+    expect(mockedUnlink).toHaveBeenCalled();
+    // Action should still complete normally (swallowed)
+    expect(exitSpy).not.toHaveBeenCalledWith(2);
+  });
+
+  it("aborts the controller and writes to stderr when SIGINT fires during grade", async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: "a", check: "c" }] });
+    let capturedController: AbortController | undefined;
+    mockRun.mockImplementation(async (_checks, _path, opts) => {
+      capturedController = opts?.controller;
+      process.emit("SIGINT");
+      return { results: [], passRate: 0, costUsd: 0 };
+    });
+    const program = makeProgramStub();
+    await gradeAction("checks.yaml", "output.md", {}, program);
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("Aborting in-flight checks"));
+    expect(capturedController?.signal.aborted).toBe(true);
+    expect(exitSpy).toHaveBeenCalledWith(130);
+  });
 });
 
 describe("lintAction", () => {
@@ -176,7 +223,7 @@ describe("lintAction", () => {
 
   it("runs and succeeds", async () => {
     mockLoad.mockResolvedValue({ checks: [{ id: "a", check: "c" }] });
-    mockRunLint.mockResolvedValue({ results: [], checksWithIssues: 0 });
+    mockRunLint.mockResolvedValue({ results: [], checksWithIssues: 0, costUsd: 0 });
     const lintCmd = makeProgramStub();
     await lintAction("checks.yaml", {}, lintCmd);
     expect(mockRunLint).toHaveBeenCalled();
@@ -184,7 +231,7 @@ describe("lintAction", () => {
 
   it("writes verbose summary to stderr when verbose is set", async () => {
     mockLoad.mockResolvedValue({ checks: [{ id: "a", check: "c" }] });
-    mockRunLint.mockResolvedValue({ results: [], checksWithIssues: 2 });
+    mockRunLint.mockResolvedValue({ results: [], checksWithIssues: 2, costUsd: 0 });
     const lintCmd = makeProgramStub();
     await lintAction("checks.yaml", { verbose: true }, lintCmd);
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("Lint done: 1 checks, 2 with issues"));
@@ -211,5 +258,32 @@ describe("lintAction", () => {
     const lintCmd = makeProgramStub();
     await lintAction("checks.yaml", {}, lintCmd);
     expect(exitSpy).toHaveBeenCalledWith(2);
+  });
+
+  it("parses --concurrency option and forwards as integer to runLint", async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: "a", check: "c" }] });
+    mockRunLint.mockResolvedValue({ results: [], checksWithIssues: 0, costUsd: 0 });
+    const lintCmd = makeProgramStub();
+    await lintAction("checks.yaml", { concurrency: "3" }, lintCmd);
+    expect(mockRunLint).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ concurrency: 3 }),
+    );
+  });
+
+  it("aborts the controller and writes to stderr when SIGINT fires during lint", async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: "a", check: "c" }] });
+    let capturedController: AbortController | undefined;
+    mockRunLint.mockImplementation(async (_checks, opts) => {
+      capturedController = opts?.controller;
+      // Simulate SIGINT mid-run
+      process.emit("SIGINT");
+      return { results: [], checksWithIssues: 0, costUsd: 0 };
+    });
+    const lintCmd = makeProgramStub();
+    await lintAction("checks.yaml", {}, lintCmd);
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining("Aborting in-flight checks"));
+    expect(capturedController?.signal.aborted).toBe(true);
+    expect(exitSpy).toHaveBeenCalledWith(130);
   });
 });
