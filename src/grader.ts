@@ -1,4 +1,5 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKResultError } from "@anthropic-ai/claude-agent-sdk";
 import type { Check } from "./config.js";
 import { buildGraderPrompt } from "./prompt.js";
 
@@ -59,7 +60,7 @@ export async function gradeCheck(
   try {
     let resultText = "";
     let costUsd = 0;
-    let sdkError: { subtype: string; errors: string[] } | null = null;
+    let sdkError: Pick<SDKResultError, "subtype" | "errors"> | null = null;
 
     for await (const message of query({
       prompt,
@@ -77,20 +78,17 @@ export async function gradeCheck(
       },
     })) {
       if (message.type === "result") {
-        if ("total_cost_usd" in message && typeof message.total_cost_usd === "number") {
-          costUsd = message.total_cost_usd;
-        }
+        costUsd = message.total_cost_usd;
 
-        if ("subtype" in message && message.subtype === "success") {
+        if (message.subtype === "success") {
           // Prefer structured_output (pre-parsed object) over result (JSON string)
-          if ("structured_output" in message && message.structured_output != null) {
+          if (message.structured_output != null) {
             resultText = JSON.stringify(message.structured_output);
-          } else if ("result" in message && typeof message.result === "string") {
+          } else {
             resultText = message.result;
           }
-        } else if ("subtype" in message) {
-          const errMsg = message as unknown as { subtype: string; errors: string[] };
-          sdkError = { subtype: errMsg.subtype, errors: errMsg.errors };
+        } else {
+          sdkError = { subtype: message.subtype, errors: message.errors };
         }
       }
     }
