@@ -66,9 +66,6 @@ export async function lintCheck(
   const model = options.model ?? DEFAULT_MODEL;
   const prompt = buildLintPrompt(check, options.context);
 
-  // Prevent nested session errors
-  delete process.env.CLAUDECODE;
-
   try {
     let resultText = "";
     let sdkError: { subtype: string; errors: string[] } | null = null;
@@ -77,6 +74,7 @@ export async function lintCheck(
       prompt,
       options: {
         model,
+        env: { ...process.env, CLAUDECODE: undefined },
         tools: [],
         maxTurns: 10,
         permissionMode: "bypassPermissions",

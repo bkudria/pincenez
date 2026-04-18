@@ -322,8 +322,9 @@ describe("gradeCheck", () => {
     expect(result.evidence).toContain("this is plain text not json");
   });
 
-  it("deletes CLAUDECODE env var", async () => {
+  it("passes env to query() with CLAUDECODE unset and does not mutate process.env", async () => {
     process.env.CLAUDECODE = "something";
+    process.env.PINCENEZ_TEST_VAR = "preserved";
 
     mockQuery.mockReturnValue(
       asyncMessages([
@@ -332,6 +333,15 @@ describe("gradeCheck", () => {
     );
 
     await gradeCheck(testCheck, "/tmp/out.md");
-    expect(process.env.CLAUDECODE).toBeUndefined();
+
+    expect(process.env.CLAUDECODE).toBe("something");
+
+    const passedEnv = mockQuery.mock.calls[0]?.[0]?.options?.env;
+    expect(passedEnv).toBeDefined();
+    expect(passedEnv?.CLAUDECODE).toBeUndefined();
+    expect(passedEnv?.PINCENEZ_TEST_VAR).toBe("preserved");
+
+    delete process.env.CLAUDECODE;
+    delete process.env.PINCENEZ_TEST_VAR;
   });
 });

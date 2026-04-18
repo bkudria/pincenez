@@ -37,5 +37,5 @@ Data flow: `CLI → loadChecksFile() → run() → gradeCheck() (parallel, one p
 - **Exit code 0 = operational success** — check failures are data, not errors. Exit 1 = checks file error, Exit 2 = runtime error.
 - **Default model: claude-haiku-4-5 for grading** — cheapest/fastest. Per-check `model` field overrides `--model` flag. Lint defaults to claude-sonnet-4-6 for stronger anti-pattern judgment.
 - **Agent SDK with Read-only tools** — LLM can read the output file but not write anything
-- **Deletes `CLAUDECODE` env var before `query()`** — when pincenez runs inside a Claude Code session, the SDK errors with nested-session failures if `CLAUDECODE=1` is inherited. Deletion happens in `grader.ts` and `linter.ts` before each `query()` call.
+- **Unsets `CLAUDECODE` per call via `options.env`** — when pincenez runs inside a Claude Code session, the SDK errors with nested-session failures if `CLAUDECODE=1` is inherited. Each `query()` call in `grader.ts` and `linter.ts` passes `env: { ...process.env, CLAUDECODE: undefined }` so the subprocess never sees it; the parent's `process.env` is not mutated.
 - **ESM throughout** — `"type": "module"` in package.json, `NodeNext` module resolution. Imports use `.js` extensions.

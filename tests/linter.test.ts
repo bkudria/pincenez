@@ -271,8 +271,9 @@ describe("lintCheck", () => {
     expect(result.issues[0].suggestion).toContain("some garbage text");
   });
 
-  it("deletes CLAUDECODE env var", async () => {
+  it("passes env to query() with CLAUDECODE unset and does not mutate process.env", async () => {
     process.env.CLAUDECODE = "something";
+    process.env.PINCENEZ_TEST_VAR = "preserved";
 
     mockQuery.mockReturnValue(
       asyncMessages([
@@ -281,6 +282,15 @@ describe("lintCheck", () => {
     );
 
     await lintCheck(testCheck);
-    expect(process.env.CLAUDECODE).toBeUndefined();
+
+    expect(process.env.CLAUDECODE).toBe("something");
+
+    const passedEnv = mockQuery.mock.calls[0]?.[0]?.options?.env;
+    expect(passedEnv).toBeDefined();
+    expect(passedEnv?.CLAUDECODE).toBeUndefined();
+    expect(passedEnv?.PINCENEZ_TEST_VAR).toBe("preserved");
+
+    delete process.env.CLAUDECODE;
+    delete process.env.PINCENEZ_TEST_VAR;
   });
 });

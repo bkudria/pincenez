@@ -56,9 +56,6 @@ export async function gradeCheck(
   const model = check.model ?? options.model ?? DEFAULT_MODEL;
   const prompt = buildGraderPrompt(check, outputPath, options.context);
 
-  // Prevent nested session errors
-  delete process.env.CLAUDECODE;
-
   try {
     let resultText = "";
     let costUsd = 0;
@@ -68,6 +65,7 @@ export async function gradeCheck(
       prompt,
       options: {
         model,
+        env: { ...process.env, CLAUDECODE: undefined },
         tools: ["Read"],
         maxTurns: 10,
         permissionMode: "bypassPermissions",
