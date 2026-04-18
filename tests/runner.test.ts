@@ -106,6 +106,49 @@ describe("run", () => {
     expect(passRate).toBe(0.5);
   });
 
+  it("respects the concurrency limit when grading checks", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    mockGrade.mockImplementation(async (check) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 20));
+      inFlight--;
+      return makeResult(check.id, true);
+    });
+
+    const checks = Array.from({ length: 6 }, (_, i) => ({
+      id: `c${i}`,
+      check: `check ${i}`,
+    }));
+
+    await run({ checks }, "/tmp/out.md", { concurrency: 2 });
+
+    expect(maxInFlight).toBeLessThanOrEqual(2);
+  });
+
+  it("defaults to concurrency = 10 when no option is provided", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    mockGrade.mockImplementation(async (check) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 20));
+      inFlight--;
+      return makeResult(check.id, true);
+    });
+
+    const checks = Array.from({ length: 15 }, (_, i) => ({
+      id: `c${i}`,
+      check: `check ${i}`,
+    }));
+
+    await run({ checks }, "/tmp/out.md");
+
+    expect(maxInFlight).toBeLessThanOrEqual(10);
+    expect(maxInFlight).toBe(10);
+  });
+
   it("counts null pass results as failures", async () => {
     mockGrade
       .mockResolvedValueOnce(makeResult("a1", true))

@@ -31,6 +31,49 @@ describe("runLint", () => {
     });
   });
 
+  it("respects the concurrency limit when linting checks", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    mockLintCheck.mockImplementation(async (check) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 20));
+      inFlight--;
+      return { id: check.id, check: check.check, issues: [] };
+    });
+
+    const checks = Array.from({ length: 6 }, (_, i) => ({
+      id: `c${i}`,
+      check: `check ${i}`,
+    }));
+
+    await runLint({ checks }, { concurrency: 2 });
+
+    expect(maxInFlight).toBeLessThanOrEqual(2);
+  });
+
+  it("defaults to concurrency = 10 when no option is provided", async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    mockLintCheck.mockImplementation(async (check) => {
+      inFlight++;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, 20));
+      inFlight--;
+      return { id: check.id, check: check.check, issues: [] };
+    });
+
+    const checks = Array.from({ length: 15 }, (_, i) => ({
+      id: `c${i}`,
+      check: `check ${i}`,
+    }));
+
+    await runLint({ checks });
+
+    expect(maxInFlight).toBeLessThanOrEqual(10);
+    expect(maxInFlight).toBe(10);
+  });
+
   it("runs all checks and returns results", async () => {
     mockLintCheck.mockImplementation(async (check) => ({
       id: check.id,

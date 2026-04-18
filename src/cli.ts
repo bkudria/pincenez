@@ -72,7 +72,7 @@ Exit Codes:
 export async function gradeAction(
     checksFileArg: string | undefined,
     outputArg: string | undefined,
-    opts: { model?: string; context?: string; verbose?: boolean },
+    opts: { model?: string; context?: string; verbose?: boolean; concurrency?: string },
     program: Command,
 ) {
     if (!checksFileArg || checksFileArg === "help") {
@@ -112,6 +112,7 @@ export async function gradeAction(
                 model: opts.model,
                 context: opts.context,
                 controller,
+                concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
             });
 
             if (opts.verbose) {
@@ -141,7 +142,7 @@ export async function gradeAction(
 
 export async function lintAction(
     checksFileArg: string | undefined,
-    opts: { model?: string; context?: string; verbose?: boolean },
+    opts: { model?: string; context?: string; verbose?: boolean; concurrency?: string },
     lintCmd: Command,
 ) {
     if (!checksFileArg) {
@@ -164,6 +165,7 @@ export async function lintAction(
             model: opts.model,
             context: opts.context,
             controller,
+            concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
         });
 
         if (opts.verbose) {
@@ -205,6 +207,7 @@ async function main() {
         .argument("[output]", "File or directory for the LLM to read and evaluate (default: stdin)")
         .option("--model <model>", "LLM judge model (default: claude-haiku-4-5)")
         .option("--context <text>", "Override or supplement the checks file's context field")
+        .option("--concurrency <n>", "Max parallel checks", "10")
         .option("-v, --verbose", "Print completion summary to stderr")
         .addHelpText("after", HELP_TEXT)
         .action(async (checksFileArg: string | undefined, outputArg: string | undefined, opts) => {
@@ -216,6 +219,7 @@ async function main() {
         .description("Check quality for common anti-patterns")
         .option("--model <model>", "LLM model for lint analysis (default: claude-sonnet-4-6)")
         .option("--context <text>", "Scenario prompt (helps detect tautological checks)")
+        .option("--concurrency <n>", "Max parallel checks", "10")
         .option("-v, --verbose", "Print completion summary to stderr")
         .addHelpText("after", getLintRulesText())
         .action(async (checksFileArg: string | undefined, opts) => {

@@ -1,3 +1,4 @@
+import pLimit from "p-limit";
 import { stringify as yamlStringify } from "yaml";
 import type { ChecksFile } from "./config.js";
 import { gradeCheck, type CheckResult } from "./grader.js";
@@ -7,7 +8,10 @@ export interface RunOptions {
   model?: string;
   context?: string;
   controller?: AbortController;
+  concurrency?: number;
 }
+
+const DEFAULT_CONCURRENCY = 10;
 
 /**
  * Run all checks in parallel, streaming results to stdout as YAML.
@@ -24,22 +28,26 @@ export async function run(
   // Write YAML array header immediately
   process.stdout.write("checks:\n");
 
-  // Launch all checks in parallel, streaming each result on completion
+  const limit = pLimit(options.concurrency ?? DEFAULT_CONCURRENCY);
+
+  // Launch all checks under the concurrency limit, streaming each result on completion
   const promises = checks.map((check) =>
-    gradeCheck(check, outputPath, {
-      model: options.model,
-      context,
-      controller: options.controller,
-    }).then((result) => {
-      results.push(result);
-      writeYamlArrayItem({
-        id: result.id,
-        check: result.check,
-        pass: result.pass,
-        evidence: result.evidence,
-      });
-      return result;
-    }),
+    limit(() =>
+      gradeCheck(check, outputPath, {
+        model: options.model,
+        context,
+        controller: options.controller,
+      }).then((result) => {
+        results.push(result);
+        writeYamlArrayItem({
+          id: result.id,
+          check: result.check,
+          pass: result.pass,
+          evidence: result.evidence,
+        });
+        return result;
+      }),
+    ),
   );
 
   // Wait for all to settle (don't abort on individual failures)

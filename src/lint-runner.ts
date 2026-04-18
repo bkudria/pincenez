@@ -1,3 +1,4 @@
+import pLimit from "p-limit";
 import { stringify as yamlStringify } from "yaml";
 import type { ChecksFile } from "./config.js";
 import { lintCheck, type LintResult } from "./linter.js";
@@ -7,7 +8,10 @@ export interface LintRunOptions {
   model?: string;
   context?: string;
   controller?: AbortController;
+  concurrency?: number;
 }
+
+const DEFAULT_CONCURRENCY = 10;
 
 /**
  * Lint all checks in parallel, streaming results to stdout as YAML.
@@ -23,21 +27,25 @@ export async function runLint(
   // Write YAML array header immediately
   process.stdout.write("checks:\n");
 
-  // Launch all checks in parallel, streaming each result on completion
+  const limit = pLimit(options.concurrency ?? DEFAULT_CONCURRENCY);
+
+  // Launch all checks under the concurrency limit, streaming each result on completion
   const promises = checks.map((check) =>
-    lintCheck(check, {
-      model: options.model,
-      context,
-      controller: options.controller,
-    }).then((result) => {
-      results.push(result);
-      writeYamlArrayItem({
-        id: result.id,
-        check: result.check,
-        issues: result.issues,
-      });
-      return result;
-    }),
+    limit(() =>
+      lintCheck(check, {
+        model: options.model,
+        context,
+        controller: options.controller,
+      }).then((result) => {
+        results.push(result);
+        writeYamlArrayItem({
+          id: result.id,
+          check: result.check,
+          issues: result.issues,
+        });
+        return result;
+      }),
+    ),
   );
 
   // Wait for all to settle
