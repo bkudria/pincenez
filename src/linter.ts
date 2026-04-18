@@ -2,6 +2,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKResultError } from "@anthropic-ai/claude-agent-sdk";
 import type { Check } from "./config.js";
 import { buildLintPrompt } from "./lint-prompt.js";
+import { formatSdkError } from "./sdk-error.js";
 
 export interface LintIssue {
   anti_pattern: string;
@@ -69,7 +70,7 @@ export async function lintCheck(
 
   try {
     let resultText = "";
-    let sdkError: Pick<SDKResultError, "subtype" | "errors"> | null = null;
+    let sdkError: Pick<SDKResultError, "subtype" | "errors" | "terminal_reason" | "permission_denials"> | null = null;
 
     for await (const message of query({
       prompt,
@@ -95,19 +96,21 @@ export async function lintCheck(
             resultText = message.result;
           }
         } else {
-          sdkError = { subtype: message.subtype, errors: message.errors };
+          sdkError = {
+            subtype: message.subtype,
+            errors: message.errors,
+            terminal_reason: message.terminal_reason,
+            permission_denials: message.permission_denials,
+          };
         }
       }
     }
 
     if (sdkError) {
-      const errorDetail = sdkError.errors.length > 0
-        ? sdkError.errors.join("; ")
-        : "no error details provided";
       return {
         id: check.id,
         check: check.check,
-        issues: [{ anti_pattern: "error", suggestion: `SDK result ${sdkError.subtype}: ${errorDetail}` }],
+        issues: [{ anti_pattern: "error", suggestion: formatSdkError(sdkError) }],
       };
     }
 

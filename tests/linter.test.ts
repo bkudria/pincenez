@@ -258,6 +258,33 @@ describe("lintCheck", () => {
     expect(result.issues[0].suggestion).toContain("max turns exceeded");
   });
 
+  it("includes terminal_reason in error suggestion when present", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        {
+          type: "result",
+          subtype: "error_during_execution",
+          duration_ms: 0,
+          duration_api_ms: 0,
+          is_error: true,
+          num_turns: 1,
+          session_id: "test-session",
+          total_cost_usd: 0,
+          usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, server_tool_use: null },
+          modelUsage: {},
+          permission_denials: [],
+          terminal_reason: "prompt_too_long",
+          uuid: "test-uuid",
+          errors: ["context exceeded"],
+        } as unknown as SDKMessage,
+      ]),
+    );
+
+    const result = await lintCheck(testCheck);
+    expect(result.issues[0].suggestion).toContain("prompt_too_long");
+    expect(result.issues[0].suggestion).toContain("terminal");
+  });
+
   it("returns error with snippet when structured output parsing fails", async () => {
     mockQuery.mockReturnValue(
       asyncMessages([

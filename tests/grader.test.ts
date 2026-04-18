@@ -71,7 +71,11 @@ function resultMessage(result: string): SDKResultSuccess {
   };
 }
 
-function errorMessage(subtype: string, errors: string[]): SDKResultError {
+function errorMessage(
+  subtype: string,
+  errors: string[],
+  extras: Partial<Pick<SDKResultError, "terminal_reason" | "permission_denials">> = {},
+): SDKResultError {
   return {
     type: "result",
     subtype,
@@ -84,7 +88,8 @@ function errorMessage(subtype: string, errors: string[]): SDKResultError {
     total_cost_usd: 0.003,
     usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, server_tool_use: null },
     modelUsage: {},
-    permission_denials: [],
+    permission_denials: extras.permission_denials ?? [],
+    terminal_reason: extras.terminal_reason,
     uuid: "test-uuid" as SDKResultError["uuid"],
     session_id: "test-session",
   } as SDKResultError;
@@ -288,6 +293,38 @@ describe("gradeCheck", () => {
     expect(result.pass).toBeNull();
     expect(result.evidence).toContain("error_during_execution");
     expect(result.evidence).toContain("permission denied");
+  });
+
+  it("includes terminal_reason in error evidence when present", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        errorMessage("error_max_turns", ["hit turn limit"], { terminal_reason: "max_turns" }),
+      ]),
+    );
+
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
+    expect(result.pass).toBeNull();
+    expect(result.evidence).toContain("max_turns");
+    expect(result.evidence).toContain("terminal");
+  });
+
+  it("includes denied tool names in error evidence when permission_denials non-empty", async () => {
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        errorMessage("error_during_execution", ["tool denied"], {
+          permission_denials: [
+            { tool_name: "Bash", tool_use_id: "tu_1", tool_input: {} },
+            { tool_name: "Write", tool_use_id: "tu_2", tool_input: {} },
+          ],
+        }),
+      ]),
+    );
+
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
+    expect(result.pass).toBeNull();
+    expect(result.evidence).toContain("Bash");
+    expect(result.evidence).toContain("Write");
+    expect(result.evidence).toContain("denied");
   });
 
   it("extracts verdict from structured_output when result is empty", async () => {

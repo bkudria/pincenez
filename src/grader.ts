@@ -2,6 +2,7 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { SDKResultError } from "@anthropic-ai/claude-agent-sdk";
 import type { Check } from "./config.js";
 import { buildGraderPrompt } from "./prompt.js";
+import { formatSdkError } from "./sdk-error.js";
 
 export interface CheckResult {
   id: string;
@@ -60,7 +61,7 @@ export async function gradeCheck(
   try {
     let resultText = "";
     let costUsd = 0;
-    let sdkError: Pick<SDKResultError, "subtype" | "errors"> | null = null;
+    let sdkError: Pick<SDKResultError, "subtype" | "errors" | "terminal_reason" | "permission_denials"> | null = null;
 
     for await (const message of query({
       prompt,
@@ -88,20 +89,22 @@ export async function gradeCheck(
             resultText = message.result;
           }
         } else {
-          sdkError = { subtype: message.subtype, errors: message.errors };
+          sdkError = {
+            subtype: message.subtype,
+            errors: message.errors,
+            terminal_reason: message.terminal_reason,
+            permission_denials: message.permission_denials,
+          };
         }
       }
     }
 
     if (sdkError) {
-      const errorDetail = sdkError.errors.length > 0
-        ? sdkError.errors.join("; ")
-        : "no error details provided";
       return {
         id: check.id,
         check: check.check,
         pass: null,
-        evidence: `error: SDK result ${sdkError.subtype}: ${errorDetail}`,
+        evidence: `error: ${formatSdkError(sdkError)}`,
         cost_usd: costUsd,
       };
     }
