@@ -72,7 +72,7 @@ export async function gradeCheck(
         model,
         env: { ...process.env, CLAUDECODE: undefined },
         tools: ["Read"],
-        maxTurns: 10,
+        maxTurns: 30,
         permissionMode: "bypassPermissions",
         allowDangerouslySkipPermissions: true,
         persistSession: false,
