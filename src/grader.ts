@@ -12,6 +12,8 @@ export interface CheckResult {
   pass: boolean | null;
   evidence: string;
   cost_usd: number;
+  cache_creation_tokens: number;
+  cache_read_tokens: number;
 }
 
 export interface Verdict {
@@ -64,6 +66,8 @@ export async function gradeCheck(
   try {
     let resultText = "";
     let costUsd = 0;
+    let cacheCreationTokens = 0;
+    let cacheReadTokens = 0;
     let sdkError: Pick<SDKResultError, "subtype" | "errors" | "terminal_reason" | "permission_denials"> | null = null;
 
     for await (const message of query({
@@ -86,6 +90,8 @@ export async function gradeCheck(
     })) {
       if (message.type === "result") {
         costUsd = message.total_cost_usd;
+        cacheCreationTokens = message.usage.cache_creation_input_tokens ?? 0;
+        cacheReadTokens = message.usage.cache_read_input_tokens ?? 0;
 
         if (message.subtype === "success") {
           // Prefer structured_output (pre-parsed object) over result (JSON string)
@@ -112,6 +118,8 @@ export async function gradeCheck(
         pass: null,
         evidence: `error: ${formatSdkError(sdkError)}`,
         cost_usd: costUsd,
+        cache_creation_tokens: cacheCreationTokens,
+        cache_read_tokens: cacheReadTokens,
       };
     }
 
@@ -126,6 +134,8 @@ export async function gradeCheck(
         pass: null,
         evidence: `error: could not parse structured output from LLM response: ${snippet}`,
         cost_usd: costUsd,
+        cache_creation_tokens: cacheCreationTokens,
+        cache_read_tokens: cacheReadTokens,
       };
     }
 
@@ -135,6 +145,8 @@ export async function gradeCheck(
       pass: verdict.pass,
       evidence: verdict.evidence,
       cost_usd: costUsd,
+      cache_creation_tokens: cacheCreationTokens,
+      cache_read_tokens: cacheReadTokens,
     };
   } catch (err) {
     return {
@@ -143,6 +155,8 @@ export async function gradeCheck(
       pass: null,
       evidence: `error: ${err instanceof Error ? err.message : String(err)}`,
       cost_usd: 0,
+      cache_creation_tokens: 0,
+      cache_read_tokens: 0,
     };
   }
 }

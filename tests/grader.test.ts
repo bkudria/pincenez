@@ -129,7 +129,31 @@ describe("gradeCheck", () => {
       pass: true,
       evidence: "looks good",
       cost_usd: 0,
+      cache_creation_tokens: 0,
+      cache_read_tokens: 0,
     });
+  });
+
+  it("surfaces cache_creation_tokens and cache_read_tokens from SDK usage", async () => {
+    const base = resultMessage('{"pass": true, "evidence": "ok"}');
+    mockQuery.mockReturnValue(
+      asyncMessages([
+        {
+          ...base,
+          usage: {
+            input_tokens: 100,
+            output_tokens: 20,
+            cache_creation_input_tokens: 500,
+            cache_read_input_tokens: 1200,
+            server_tool_use: null,
+          },
+        } as SDKResultSuccess,
+      ]),
+    );
+
+    const result = await gradeCheck(testCheck, "/tmp/out.md");
+    expect(result.cache_creation_tokens).toBe(500);
+    expect(result.cache_read_tokens).toBe(1200);
   });
 
   it("ignores non-result messages in the stream", async () => {

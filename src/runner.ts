@@ -68,6 +68,10 @@ export async function run(
   if (costUsd > 0) {
     summary.cost_usd = costUsd;
   }
+  const cacheCreationTotal = results.reduce((sum, r) => sum + (r.cache_creation_tokens ?? 0), 0);
+  const cacheReadTotal = results.reduce((sum, r) => sum + (r.cache_read_tokens ?? 0), 0);
+  if (cacheCreationTotal > 0) summary.cache_creation_tokens = cacheCreationTotal;
+  if (cacheReadTotal > 0) summary.cache_read_tokens = cacheReadTotal;
   process.stdout.write(yamlStringify(summary, { lineWidth: 0 }));
 
   return { results, passRate, costUsd };

@@ -23,7 +23,7 @@ function makeChecksFile(overrides: Partial<ChecksFile> = {}): ChecksFile {
 }
 
 function makeResult(id: string, pass: boolean | null, evidence = "evidence", cost_usd = 0): CheckResult {
-  return { id, check: `check for ${id}`, pass, evidence, cost_usd };
+  return { id, check: `check for ${id}`, pass, evidence, cost_usd, cache_creation_tokens: 0, cache_read_tokens: 0 };
 }
 
 describe("run", () => {
@@ -63,6 +63,23 @@ describe("run", () => {
 
     expect(written).toContain("  - id: a1");
     expect(written).toContain("  - id: a2");
+  });
+
+  it("includes cache_creation_tokens and cache_read_tokens in summary when non-zero", async () => {
+    mockGrade.mockResolvedValueOnce({ ...makeResult("a1", true), cache_creation_tokens: 100, cache_read_tokens: 200 });
+    mockGrade.mockResolvedValueOnce({ ...makeResult("a2", true), cache_creation_tokens: 50, cache_read_tokens: 300 });
+
+    await run(makeChecksFile(), "/tmp/out.md");
+
+    expect(written).toContain("cache_creation_tokens: 150");
+    expect(written).toContain("cache_read_tokens: 500");
+  });
+
+  it("omits cache_* fields from summary when both totals are 0", async () => {
+    mockGrade.mockResolvedValue(makeResult("a1", true));
+    await run({ checks: [{ id: "a1", check: "c" }] }, "/tmp/out.md");
+    expect(written).not.toContain("cache_creation_tokens");
+    expect(written).not.toContain("cache_read_tokens");
   });
 
   it("writes pass_rate line after all results", async () => {
