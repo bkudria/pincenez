@@ -92,11 +92,14 @@ pincenez [options] <checks.yaml> [output]
 
 ### Exit Codes
 
+Shared taxonomy across scuttlerun/pincenez/craboodle. Codes 3–7 are reserved for scuttlerun/craboodle concerns; pincenez emits only:
+
 | Code | Meaning |
 |------|---------|
 | 0 | Ran successfully (regardless of check results) |
 | 1 | Checks file error (invalid YAML, missing fields) |
-| 2 | Runtime error |
+| 2 | Runtime error (SDK failure, API error, unhandled exception) |
+| 130 | Interrupted (SIGINT) |
 
 ### Lint
 

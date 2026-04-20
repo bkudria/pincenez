@@ -83,7 +83,7 @@ pass_rate: 0.67
 - Each check has `id`, `check` (echoed from checks file), `pass` (boolean), and `evidence` (judge's reasoning)
 - `pass_rate` is `checks_passed / checks_total`
 - No summary field — the checks speak for themselves
-- Exit code 0 means pincenez ran successfully, regardless of check results. Parse output for pass/fail.
+- Exit code 0 means pincenez ran successfully, regardless of check results. Parse output for pass/fail. Pincenez emits 0/1/2/130 per the shared scuttlerun/pincenez/craboodle exit-code taxonomy.
 - YAML output is consistent with YAML input (checks file) — same format throughout the pipeline
 
 ### Cost Tracking
@@ -209,10 +209,11 @@ Each check is linted independently in parallel (one LLM call per check), matchin
 
 ### Lint Exit Codes
 
-Lint uses the same exit codes as grading:
+Lint uses the same exit codes as grading (shared scuttlerun/pincenez/craboodle taxonomy; codes 3–7 reserved for scuttlerun/craboodle concerns):
 - 0: Lint completed (regardless of issues found)
 - 1: Checks file error
 - 2: Runtime error
+- 130: Interrupted (SIGINT)
 
 ## Composition with Other Tools
 
