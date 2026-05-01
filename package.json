@@ -2,10 +2,35 @@
   "name": "pincenez",
   "version": "0.1.0",
   "description": "Grade LLM outputs against checks files using an LLM judge",
+  "keywords": [
+    "llm",
+    "eval",
+    "evaluation",
+    "grader",
+    "judge",
+    "claude",
+    "anthropic",
+    "yaml",
+    "cli",
+    "testing"
+  ],
+  "author": "Benjamin Kudria <ben@kudria.net>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bkudria/pincenez.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bkudria/pincenez/issues"
+  },
+  "homepage": "https://github.com/bkudria/pincenez#readme",
   "type": "module",
   "bin": {
     "pincenez": "./dist/cli.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc && chmod +x dist/cli.js",
     "test": "vitest run",
@@ -33,5 +58,8 @@
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.58.2",
     "vitest": "^4.1.4"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

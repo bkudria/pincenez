@@ -1,0 +1,632 @@
+-- allium: 3
+-- pincenez.allium
+--
+-- Pincenez: grade LLM outputs against checks files using an LLM judge.
+--
+-- Scope: the grading and linting workflows of the pincenez CLI.
+-- Includes:
+--   - Check and CheckSet schema (the user-authored input format)
+--   - Grading workflow: per-check independent evaluation, verdict semantics
+--   - Linting workflow: per-check anti-pattern detection
+--   - Streaming output and aggregate reporting
+--   - Error semantics distinguishing check failure from grader/analyst error
+--   - CLI exit code contract
+--
+-- Excludes:
+--   - SDK call mechanics (env handling, persistSession, abort plumbing)
+--   - YAML serialization mechanics (block literals, indentation)
+--   - Concurrency pool implementation (the parallel-evaluation cap)
+--   - File I/O mechanics (stdin temp file lifecycle, path resolution)
+--   - Build/test infrastructure (TypeScript, Zod, vitest, ESLint)
+--   - Specific Anthropic model identifiers (treated as configuration)
+
+------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+-- The outcome of grading one Check against one Output.
+enum Verdict {
+    passed                       -- judge returned pass = true
+  | failed                       -- judge returned pass = false
+  | errored                      -- judge call could not produce a verdict
+}
+
+-- The lint anti-pattern categories detected on Checks.
+enum AntiPattern {
+    vague                        -- subjective terms without specifics
+  | compound                     -- multiple independent claims in one check
+  | tautological                 -- restates the prompt without specificity
+  | always_passes                -- tests baseline LLM behaviour
+  | unverifiable                 -- references internal state, not output
+  | over_specific                -- prescribes one means when alternatives exist
+  | error                        -- analyst itself errored on this check
+}
+
+------------------------------------------------------------
+-- External Entities
+------------------------------------------------------------
+
+-- A binary, objectively verifiable claim about an Output.
+-- Authored by the user in a CheckSet (YAML file).
+external entity Check {
+    id: String                    -- unique within its CheckSet
+    statement: String             -- the claim to evaluate
+    note: String?                 -- grading hint; orients the judge
+    model_override: String?       -- per-check judge model, overrides defaults
+}
+
+-- A user-authored bundle of Checks for one task.
+external entity CheckSet {
+    context: String?              -- task description orienting the judge
+    checks: List<Check>           -- non-empty
+
+    invariant UniqueCheckIds {
+        for a in checks:
+            for b in checks:
+                a != b implies a.id != b.id
+    }
+}
+
+-- The artifact a judge reads while evaluating Checks.
+external entity Output {
+    path: String                  -- absolute path to file or directory
+}
+
+-- The shell user invoking the pincenez CLI.
+external entity User {
+    invocation_pid: Integer       -- present so the entity has identity
+}
+
+------------------------------------------------------------
+-- Value Types
+------------------------------------------------------------
+
+-- The judge's response for a single Check evaluation.
+-- The verdict field encodes both success and failure modes:
+-- on success the judge returns passed or failed; on call failure
+-- (SDK error, malformed structured output, timeout) the response
+-- carries verdict = errored and evidence describing the failure.
+value JudgeResponse {
+    verdict: Verdict
+    evidence: String              -- judge reasoning, or error description
+    cost_usd: Decimal             -- billed for this invocation; 0 if no call billed
+    cache_creation_tokens: Integer
+    cache_read_tokens: Integer
+}
+
+-- A single anti-pattern finding from the lint analyst.
+value LintIssue {
+    anti_pattern: AntiPattern
+    suggestion: String            -- concrete rewrite or guidance
+}
+
+-- The lint analyst's response for a single Check.
+-- On call failure, issues contains a single error pseudo-issue
+-- (anti_pattern = error, suggestion = error description).
+value LintResponse {
+    issues: List<LintIssue>       -- empty when no anti-patterns found
+    cost_usd: Decimal
+}
+
+------------------------------------------------------------
+-- Contracts
+------------------------------------------------------------
+
+-- The judge LLM consulted to evaluate Checks.
+contract Judge {
+    grade: (
+        check: Check,
+        output: Output,
+        model: String,
+        context: String?
+    ) -> JudgeResponse
+
+    @invariant Independence
+        -- Each grade call evaluates one Check in isolation. There is no
+        -- shared session, prompt, or carry-over of reasoning between
+        -- calls. One verdict cannot influence another.
+
+    @invariant ReadOnlyAccess
+        -- The judge may read the output file (or directory) and any
+        -- files it references, but must not write, modify, or otherwise
+        -- mutate any file or external state.
+
+    @invariant StructuredVerdict
+        -- A successful response carries verdict in {passed, failed} and
+        -- evidence citing the output. A failed call carries verdict =
+        -- errored and evidence beginning with "error:".
+
+    @invariant EvidenceCitesOutput
+        -- evidence on a successful response is concise (1-2 sentences)
+        -- and references concrete content from the output, including
+        -- direct quotes or specific file references where applicable.
+
+    @guidance
+        -- The judge is invoked with a system prompt establishing it as
+        -- a grader, a user prompt containing the Check's statement,
+        -- optional note, the run's effective context, and the output
+        -- path. The model parameter is a Claude model identifier.
+}
+
+-- The analyst LLM consulted to lint Checks for anti-patterns.
+contract LintAnalyst {
+    analyse: (
+        check: Check,
+        model: String,
+        context: String?
+    ) -> LintResponse
+
+    @invariant Independence
+        -- Each analyse call inspects one Check in isolation.
+
+    @invariant DomainCalibration
+        -- The analyst characterises the scenario domain (technical,
+        -- creative, mixed) from the optional context and calibrates
+        -- anti-pattern severity accordingly. Domain-appropriate
+        -- subjective language in creative scenarios is not flagged
+        -- as vague.
+
+    @invariant SuggestionsAreClean
+        -- A suggested rewrite must not introduce a different
+        -- anti-pattern. The analyst verifies its own suggestions
+        -- before emitting them.
+
+    @invariant TautologicalRequiresContext
+        -- The tautological category compares the Check against the
+        -- scenario context. Without context, the analyst skips this
+        -- category rather than guessing.
+}
+
+------------------------------------------------------------
+-- Entities
+------------------------------------------------------------
+
+-- A single grading invocation: one CheckSet against one Output,
+-- producing one GradingResult per Check.
+entity GradingRun {
+    checkset: CheckSet
+    output: Output
+    judge_default_model: String
+    effective_context: String?    -- context override if any, else CheckSet.context
+    started_at: Timestamp
+
+    status: in_progress | complete | aborted
+
+    -- Relationships
+    results: GradingResult with run = this
+
+    -- Projections
+    passed_results: results where verdict = passed
+    failed_results: results where verdict = failed
+    errored_results: results where verdict = errored
+    graded_checks: results -> check
+    unfinished_checks: checkset.checks - graded_checks
+
+    -- Derived
+    all_results_in: results.count = checkset.checks.count
+    pass_rate: passed_results.count / checkset.checks.count
+    errored_count: errored_results.count
+
+    transitions status {
+        in_progress -> complete
+        in_progress -> aborted
+        terminal: complete, aborted
+    }
+
+    completed_at: Timestamp when status = complete | aborted
+
+    invariant ResultsBelongToCheckSet {
+        for r in results:
+            r.check in checkset.checks
+    }
+}
+
+-- One Check's evaluation outcome within a GradingRun.
+entity GradingResult {
+    run: GradingRun
+    check: Check
+    verdict: Verdict
+    evidence: String
+    cost_usd: Decimal
+    cache_creation_tokens: Integer
+    cache_read_tokens: Integer
+    completed_at: Timestamp
+}
+
+-- A single linting invocation: one CheckSet, producing one LintResult per Check.
+entity LintRun {
+    checkset: CheckSet
+    analyst_default_model: String
+    effective_context: String?
+    started_at: Timestamp
+
+    status: in_progress | complete | aborted
+
+    results: LintResult with run = this
+
+    flagged_results: results where issues.count > 0
+    linted_checks: results -> check
+    unfinished_checks: checkset.checks - linted_checks
+
+    all_results_in: results.count = checkset.checks.count
+    checks_with_issues: flagged_results.count
+
+    transitions status {
+        in_progress -> complete
+        in_progress -> aborted
+        terminal: complete, aborted
+    }
+
+    completed_at: Timestamp when status = complete | aborted
+}
+
+-- One Check's lint outcome within a LintRun.
+entity LintResult {
+    run: LintRun
+    check: Check
+    issues: Set<LintIssue>        -- empty when no anti-patterns; one error issue on abort
+    cost_usd: Decimal
+    completed_at: Timestamp
+}
+
+------------------------------------------------------------
+-- Config
+------------------------------------------------------------
+
+config {
+    default_grading_model: String = "claude-haiku-4-5"
+    default_lint_model: String = "claude-sonnet-4-6"
+}
+
+------------------------------------------------------------
+-- Rules
+------------------------------------------------------------
+
+-- Grading flow ----------------------------------------------------
+
+rule StartGradingRun {
+    when: GradeRequested(
+        user,
+        checkset,
+        output,
+        model_flag?,
+        context_flag?
+    )
+
+    requires: checkset.checks.count >= 1
+    requires:
+        for a in checkset.checks:
+            for b in checkset.checks:
+                a != b implies a.id != b.id
+
+    ensures: GradingRun.created(
+        checkset: checkset,
+        output: output,
+        judge_default_model: model_flag ?? config.default_grading_model,
+        effective_context: context_flag ?? checkset.context,
+        started_at: now,
+        status: in_progress
+    )
+}
+
+rule SchedulePerCheckGrading {
+    when: run: GradingRun.created
+    for check in run.checkset.checks:
+        ensures: CheckGradeRequested(
+            run: run,
+            check: check,
+            model: check.model_override ?? run.judge_default_model,
+            context: run.effective_context
+        )
+
+    @guidance
+        -- Each CheckGradeRequested fires independently; instances may run
+        -- concurrently up to an implementation-chosen cap. Independence is
+        -- a domain requirement (see Judge.Independence); concurrency is an
+        -- implementation choice that affects latency, not correctness.
+}
+
+rule EvaluateCheck {
+    when: CheckGradeRequested(run, check, model, context?)
+
+    requires: run.status = in_progress
+
+    let response = grade(check, run.output, model, context)
+
+    ensures: GradingResult.created(
+        run: run,
+        check: check,
+        verdict: response.verdict,
+        evidence: response.evidence,
+        cost_usd: response.cost_usd,
+        cache_creation_tokens: response.cache_creation_tokens,
+        cache_read_tokens: response.cache_read_tokens,
+        completed_at: now
+    )
+
+    @guidance
+        -- grade() corresponds to the Judge contract. The implementation
+        -- supplies a system prompt, user prompt, and structured-output
+        -- schema enforcing JudgeResponse shape.
+}
+
+rule FinalizeGradingRun {
+    when: run: GradingRun.all_results_in
+    requires: run.status = in_progress
+
+    ensures: run.status = complete
+    ensures: run.completed_at = now
+
+    @guidance
+        -- On completion, the CLI emits the aggregate summary
+        -- (pass_rate, errored_count if > 0, cost_usd if > 0).
+}
+
+rule AbortGradingRun {
+    when: AbortGradingRequested(run)
+    requires: run.status = in_progress
+
+    ensures: run.status = aborted
+    ensures: run.completed_at = now
+    ensures:
+        for check in run.unfinished_checks:
+            GradingResult.created(
+                run: run,
+                check: check,
+                verdict: errored,
+                evidence: "error: aborted before grading completed",
+                cost_usd: 0,
+                cache_creation_tokens: 0,
+                cache_read_tokens: 0,
+                completed_at: now
+            )
+
+    @guidance
+        -- Triggered by SIGINT. The aggregate summary is not emitted, but
+        -- every Check in the CheckSet ends up with a GradingResult: those
+        -- that completed before the abort carry their judge verdict; those
+        -- still in flight (or never scheduled) carry verdict = errored
+        -- with abort-specific evidence. Downstream consumers thus see
+        -- full per-check coverage even on abort.
+}
+
+-- Linting flow ----------------------------------------------------
+
+rule StartLintRun {
+    when: LintRequested(
+        user,
+        checkset,
+        model_flag?,
+        context_flag?
+    )
+
+    requires: checkset.checks.count >= 1
+    requires:
+        for a in checkset.checks:
+            for b in checkset.checks:
+                a != b implies a.id != b.id
+
+    ensures: LintRun.created(
+        checkset: checkset,
+        analyst_default_model: model_flag ?? config.default_lint_model,
+        effective_context: context_flag ?? checkset.context,
+        started_at: now,
+        status: in_progress
+    )
+
+    @guidance
+        -- Lint defaults to a stronger model than grading because
+        -- anti-pattern detection requires subtler judgement.
+}
+
+rule SchedulePerCheckLint {
+    when: run: LintRun.created
+    for check in run.checkset.checks:
+        ensures: CheckLintRequested(
+            run: run,
+            check: check,
+            model: run.analyst_default_model,
+            context: run.effective_context
+        )
+}
+
+rule LintCheck {
+    when: CheckLintRequested(run, check, model, context?)
+
+    requires: run.status = in_progress
+
+    let response = analyse(check, model, context)
+
+    ensures: LintResult.created(
+        run: run,
+        check: check,
+        issues: response.issues,
+        cost_usd: response.cost_usd,
+        completed_at: now
+    )
+}
+
+rule FinalizeLintRun {
+    when: run: LintRun.all_results_in
+    requires: run.status = in_progress
+
+    ensures: run.status = complete
+    ensures: run.completed_at = now
+
+    @guidance
+        -- On completion, the CLI emits checks_total, checks_with_issues,
+        -- and cost_usd if > 0.
+}
+
+rule AbortLintRun {
+    when: AbortLintRequested(run)
+    requires: run.status = in_progress
+
+    ensures: run.status = aborted
+    ensures: run.completed_at = now
+    ensures:
+        for check in run.unfinished_checks:
+            LintResult.created(
+                run: run,
+                check: check,
+                issues: { { anti_pattern: error, suggestion: "error: aborted before linting completed" } },
+                cost_usd: 0,
+                completed_at: now
+            )
+
+    @guidance
+        -- Symmetric with AbortGradingRun: every Check ends up with a
+        -- LintResult; in-flight or never-scheduled checks carry a single
+        -- error-pattern issue with abort-specific suggestion text.
+}
+
+------------------------------------------------------------
+-- Invariants
+------------------------------------------------------------
+
+invariant OneResultPerCheckPerGradingRun {
+    for a in GradingResults:
+        for b in GradingResults:
+            a != b and a.run = b.run
+                implies a.check != b.check
+}
+
+invariant OneResultPerCheckPerLintRun {
+    for a in LintResults:
+        for b in LintResults:
+            a != b and a.run = b.run
+                implies a.check != b.check
+}
+
+invariant ErroredVerdictHasErrorEvidence {
+    for r in GradingResults:
+        r.verdict = errored implies starts_with(r.evidence, "error:")
+}
+
+invariant ErrorIssueOnlyWhenAnalystFails {
+    for r in LintResults:
+        for i in r.issues:
+            i.anti_pattern = error implies r.issues.count = 1
+}
+
+------------------------------------------------------------
+-- Actor Declarations
+------------------------------------------------------------
+
+-- The user invoking the pincenez CLI from a shell.
+actor CLIUser {
+    identified_by: User where invocation_pid > 0
+}
+
+-- The judge LLM serving the Judge contract.
+actor JudgeRuntime {
+    identified_by: User where invocation_pid > 0
+}
+
+-- The analyst LLM serving the LintAnalyst contract.
+actor AnalystRuntime {
+    identified_by: User where invocation_pid > 0
+}
+
+------------------------------------------------------------
+-- Surfaces
+------------------------------------------------------------
+
+-- The grade subcommand: user invokes pincenez against a CheckSet and Output.
+surface GradeCommand {
+    facing user: CLIUser
+
+    exposes:
+        for run in GradingRuns where status in {complete, aborted}:
+            run.checkset
+            run.output
+            run.status
+            run.pass_rate
+            run.errored_count
+            for r in run.results:
+                r.check.id
+                r.check.statement
+                r.verdict
+                r.evidence
+
+    provides:
+        GradeRequested(user, checkset, output, model_flag?, context_flag?)
+        for run in GradingRuns where status = in_progress:
+            AbortGradingRequested(run)
+
+    contracts:
+        demands Judge
+
+    @guarantee StreamingResults
+        -- GradingResults are emitted to the user's stdout in arrival order
+        -- (whichever check finishes first), not input order. The aggregate
+        -- summary is emitted only after all results are in.
+
+    @guarantee ExitCodeSemantics
+        -- The CLI exits 0 when a run reaches status = complete.
+        -- It exits 1 when the input CheckSet is invalid (parse or schema).
+        -- It exits 2 when an unhandled error prevents the run from reaching
+        -- status = complete or aborted.
+        -- It exits 130 when AbortGradingRequested fires (SIGINT).
+        -- The exit code reflects operational success, not check outcomes:
+        -- a run with pass_rate = 0 still exits 0 if the run completed.
+
+    @guarantee FailuresAreData
+        -- A GradingResult with verdict = errored is data, not a CLI error.
+        -- It does not affect the exit code. Downstream consumers distinguish
+        -- "the check failed" from "the grader could not produce a verdict"
+        -- by inspecting verdict and evidence.
+}
+
+-- The lint subcommand: user inspects a CheckSet for quality anti-patterns.
+surface LintCommand {
+    facing user: CLIUser
+
+    exposes:
+        for run in LintRuns where status in {complete, aborted}:
+            run.checkset
+            run.status
+            run.checks_with_issues
+            for r in run.results:
+                r.check.id
+                r.check.statement
+                r.issues
+
+    provides:
+        LintRequested(user, checkset, model_flag?, context_flag?)
+        for run in LintRuns where status = in_progress:
+            AbortLintRequested(run)
+
+    contracts:
+        demands LintAnalyst
+
+    @guarantee StreamingResults
+        -- LintResults are emitted in arrival order. The aggregate summary
+        -- (checks_total, checks_with_issues, cost_usd) follows.
+
+    @guarantee ExitCodeSemantics
+        -- Same exit code taxonomy as GradeCommand.
+        -- A LintResult with anti_pattern = error does not affect the exit
+        -- code; it is the analyst-level analogue of verdict = errored.
+}
+
+-- The integration boundary with the judge LLM.
+surface JudgeIntegration {
+    facing runtime: JudgeRuntime
+
+    contracts:
+        fulfils Judge
+
+    @guarantee NoCrossContamination
+        -- Each grade invocation is fully independent. The integration must
+        -- not share state, prompt, or context across calls.
+}
+
+-- The integration boundary with the lint analyst LLM.
+surface LintAnalystIntegration {
+    facing runtime: AnalystRuntime
+
+    contracts:
+        fulfils LintAnalyst
+}
+
