@@ -1,8 +1,8 @@
-import pLimit from "p-limit";
-import { stringify as yamlStringify } from "yaml";
-import type { ChecksFile } from "./config.js";
-import { lintCheck, type LintResult } from "./linter.js";
-import { writeYamlArrayItem } from "./yaml-utils.js";
+import pLimit from 'p-limit';
+import { stringify as yamlStringify } from 'yaml';
+import type { ChecksFile } from './config.js';
+import { lintCheck, type LintResult } from './linter.js';
+import { writeYamlArrayItem } from './yaml-utils.js';
 
 export interface LintRunOptions {
   model?: string;
@@ -25,7 +25,7 @@ export async function runLint(
   const results: LintResult[] = [];
 
   // Write YAML array header immediately
-  process.stdout.write("checks:\n");
+  process.stdout.write('checks:\n');
 
   const limit = pLimit(options.concurrency ?? DEFAULT_CONCURRENCY);
 

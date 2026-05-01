@@ -12,6 +12,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint src/ tests/",
+    "format": "prettier --write src/ tests/",
+    "format:check": "prettier --check src/ tests/",
     "dev": "tsx src/cli.ts"
   },
   "dependencies": {
@@ -26,6 +28,7 @@
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^10.2.1",
+    "prettier": "3.8.3",
     "tsx": "^4.19.0",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.58.2",

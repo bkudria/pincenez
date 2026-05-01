@@ -1,8 +1,8 @@
-import pLimit from "p-limit";
-import { stringify as yamlStringify } from "yaml";
-import type { ChecksFile } from "./config.js";
-import { gradeCheck, type CheckResult } from "./grader.js";
-import { writeYamlArrayItem } from "./yaml-utils.js";
+import pLimit from 'p-limit';
+import { stringify as yamlStringify } from 'yaml';
+import type { ChecksFile } from './config.js';
+import { gradeCheck, type CheckResult } from './grader.js';
+import { writeYamlArrayItem } from './yaml-utils.js';
 
 export interface RunOptions {
   model?: string;
@@ -26,7 +26,7 @@ export async function run(
   const results: CheckResult[] = [];
 
   // Write YAML array header immediately
-  process.stdout.write("checks:\n");
+  process.stdout.write('checks:\n');
 
   const limit = pLimit(options.concurrency ?? DEFAULT_CONCURRENCY);
 
@@ -68,8 +68,8 @@ export async function run(
   if (costUsd > 0) {
     summary.cost_usd = costUsd;
   }
-  const cacheCreationTotal = results.reduce((sum, r) => sum + (r.cache_creation_tokens ?? 0), 0);
-  const cacheReadTotal = results.reduce((sum, r) => sum + (r.cache_read_tokens ?? 0), 0);
+  const cacheCreationTotal = results.reduce((sum, r) => sum + r.cache_creation_tokens, 0);
+  const cacheReadTotal = results.reduce((sum, r) => sum + r.cache_read_tokens, 0);
   if (cacheCreationTotal > 0) summary.cache_creation_tokens = cacheCreationTotal;
   if (cacheReadTotal > 0) summary.cache_read_tokens = cacheReadTotal;
   process.stdout.write(yamlStringify(summary, { lineWidth: 0 }));

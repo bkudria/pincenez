@@ -1,10 +1,6 @@
-import type { Check } from "./config.js";
+import type { Check } from './config.js';
 
-export function buildGraderUserPrompt(
-  check: Check,
-  outputPath: string,
-  context?: string,
-): string {
+export function buildGraderUserPrompt(check: Check, outputPath: string, context?: string): string {
   const parts: string[] = [];
 
   parts.push(`Output file to evaluate: ${outputPath}`);
@@ -25,7 +21,7 @@ export function buildGraderUserPrompt(
     parts.push(`**Note:** ${check.note}`);
   }
 
-  return parts.join("\n");
+  return parts.join('\n');
 }
 
 export function buildGraderSystemPrompt(): string {
@@ -45,6 +41,5 @@ export function buildGraderSystemPrompt(): string {
     `- For NEGATIVE checks (checking something did NOT happen): search the entire output thoroughly. Only pass if you find no evidence of the prohibited behavior. Absence of evidence requires a thorough search — state what you looked for and confirm it was not found.`,
     `- Provide concise, specific evidence (1-2 sentences). Quote relevant parts of the output.`,
     `- If the output does not contain enough information to evaluate the check, fail it with an explanation of what is missing.`,
-  ].join("\n");
+  ].join('\n');
 }
-

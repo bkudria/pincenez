@@ -1,8 +1,8 @@
-import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from "@anthropic-ai/claude-agent-sdk";
-import type { SDKResultError } from "@anthropic-ai/claude-agent-sdk";
-import type { Check } from "./config.js";
-import { buildGraderSystemPrompt, buildGraderUserPrompt } from "./prompt.js";
-import { formatSdkError } from "./sdk-error.js";
+import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '@anthropic-ai/claude-agent-sdk';
+import type { SDKResultError } from '@anthropic-ai/claude-agent-sdk';
+import type { Check } from './config.js';
+import { buildGraderSystemPrompt, buildGraderUserPrompt } from './prompt.js';
+import { formatSdkError } from './sdk-error.js';
 
 const GRADER_SYSTEM_PROMPT = buildGraderSystemPrompt();
 
@@ -21,15 +21,15 @@ export interface Verdict {
   evidence: string;
 }
 
-const DEFAULT_MODEL = "claude-haiku-4-5";
+const DEFAULT_MODEL = 'claude-haiku-4-5';
 
 const VERDICT_SCHEMA = {
-  type: "object" as const,
+  type: 'object' as const,
   properties: {
-    pass: { type: "boolean" as const },
-    evidence: { type: "string" as const },
+    pass: { type: 'boolean' as const },
+    evidence: { type: 'string' as const },
   },
-  required: ["pass", "evidence"],
+  required: ['pass', 'evidence'],
   additionalProperties: false,
 };
 
@@ -39,7 +39,7 @@ const VERDICT_SCHEMA = {
 export function parseVerdict(text: string): Verdict | null {
   try {
     const parsed = JSON.parse(text);
-    if (typeof parsed.pass === "boolean" && typeof parsed.evidence === "string") {
+    if (typeof parsed.pass === 'boolean' && typeof parsed.evidence === 'string') {
       return { pass: parsed.pass, evidence: parsed.evidence };
     }
     return null;
@@ -64,36 +64,39 @@ export async function gradeCheck(
   const prompt = buildGraderUserPrompt(check, outputPath, options.context);
 
   try {
-    let resultText = "";
+    let resultText = '';
     let costUsd = 0;
     let cacheCreationTokens = 0;
     let cacheReadTokens = 0;
-    let sdkError: Pick<SDKResultError, "subtype" | "errors" | "terminal_reason" | "permission_denials"> | null = null;
+    let sdkError: Pick<
+      SDKResultError,
+      'subtype' | 'errors' | 'terminal_reason' | 'permission_denials'
+    > | null = null;
 
     for await (const message of query({
       prompt,
       options: {
         model,
         env: { ...process.env, CLAUDECODE: undefined },
-        tools: ["Read"],
+        tools: ['Read'],
         maxTurns: 30,
-        permissionMode: "bypassPermissions",
+        permissionMode: 'bypassPermissions',
         allowDangerouslySkipPermissions: true,
         persistSession: false,
         abortController: options.controller,
         systemPrompt: [GRADER_SYSTEM_PROMPT, SYSTEM_PROMPT_DYNAMIC_BOUNDARY],
         outputFormat: {
-          type: "json_schema",
+          type: 'json_schema',
           schema: VERDICT_SCHEMA,
         },
       },
     })) {
-      if (message.type === "result") {
+      if (message.type === 'result') {
         costUsd = message.total_cost_usd;
         cacheCreationTokens = message.usage.cache_creation_input_tokens ?? 0;
         cacheReadTokens = message.usage.cache_read_input_tokens ?? 0;
 
-        if (message.subtype === "success") {
+        if (message.subtype === 'success') {
           // Prefer structured_output (pre-parsed object) over result (JSON string)
           if (message.structured_output != null) {
             resultText = JSON.stringify(message.structured_output);
@@ -125,9 +128,7 @@ export async function gradeCheck(
 
     const verdict = parseVerdict(resultText);
     if (!verdict) {
-      const snippet = resultText.length > 0
-        ? resultText.slice(0, 200)
-        : "(empty response)";
+      const snippet = resultText.length > 0 ? resultText.slice(0, 200) : '(empty response)';
       return {
         id: check.id,
         check: check.check,

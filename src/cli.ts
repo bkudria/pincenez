@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
-import { Command } from "commander";
-import { writeFile, unlink } from "node:fs/promises";
-import { resolve } from "node:path";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { loadChecksFile } from "./config.js";
-import { run } from "./runner.js";
-import { runLint } from "./lint-runner.js";
-import { getLintRulesText } from "./lint-prompt.js";
+import { Command } from 'commander';
+import { writeFile, unlink } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { loadChecksFile } from './config.js';
+import { run } from './runner.js';
+import { runLint } from './lint-runner.js';
+import { getLintRulesText } from './lint-prompt.js';
 
 const HELP_TEXT = `
 Checks File Schema (YAML):
@@ -70,163 +70,163 @@ Exit Codes:
   2   Runtime error (API failure, etc.)`;
 
 export async function gradeAction(
-    checksFileArg: string | undefined,
-    outputArg: string | undefined,
-    opts: { model?: string; context?: string; verbose?: boolean; concurrency?: string },
-    program: Command,
+  checksFileArg: string | undefined,
+  outputArg: string | undefined,
+  opts: { model?: string; context?: string; verbose?: boolean; concurrency?: string },
+  program: Command,
 ) {
-    if (!checksFileArg || checksFileArg === "help") {
-        program.help();
-        return;
-    }
+  if (!checksFileArg || checksFileArg === 'help') {
+    program.help();
+    return;
+  }
 
-    try {
-        const checksPath = resolve(checksFileArg);
-        const checksFile = await loadChecksFile(checksPath);
+  try {
+    const checksPath = resolve(checksFileArg);
+    const checksFile = await loadChecksFile(checksPath);
 
-        let outputPath: string;
-        let tempFile: string | undefined;
+    let outputPath: string;
+    let tempFile: string | undefined;
 
-        if (outputArg) {
-            outputPath = resolve(outputArg);
-        } else {
-            const stdinContent = await readStdin();
-            if (!stdinContent) {
-                process.stderr.write("[pincenez] Error: no output provided (pass a file or pipe to stdin)\n");
-                process.exit(1);
-            }
-            tempFile = join(tmpdir(), `pincenez-stdin-${process.pid}-${Date.now()}`);
-            await writeFile(tempFile, stdinContent, "utf8");
-            outputPath = tempFile;
-        }
-
-        const controller = new AbortController();
-        const sigintHandler = () => {
-            process.stderr.write("[pincenez] Aborting in-flight checks...\n");
-            controller.abort();
-        };
-        process.once("SIGINT", sigintHandler);
-
-        try {
-            const { passRate } = await run(checksFile, outputPath, {
-                model: opts.model,
-                context: opts.context,
-                controller,
-                concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
-            });
-
-            if (opts.verbose) {
-                process.stderr.write(`[pincenez] Done: ${checksFile.checks.length} checks, pass_rate=${passRate}\n`);
-            }
-
-            if (controller.signal.aborted) {
-                process.exit(130);
-            }
-        } finally {
-            process.removeListener("SIGINT", sigintHandler);
-            if (tempFile) {
-                await unlink(tempFile).catch(() => {});
-            }
-        }
-    } catch (err) {
-        if (err instanceof Error && err.name === "ZodError") {
-            process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
-            process.exit(1);
-        }
+    if (outputArg) {
+      outputPath = resolve(outputArg);
+    } else {
+      const stdinContent = await readStdin();
+      if (!stdinContent) {
         process.stderr.write(
-            `[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`,
+          '[pincenez] Error: no output provided (pass a file or pipe to stdin)\n',
         );
-        process.exit(2);
-    }
-}
-
-export async function lintAction(
-    checksFileArg: string | undefined,
-    opts: { model?: string; context?: string; verbose?: boolean; concurrency?: string },
-    lintCmd: Command,
-) {
-    if (!checksFileArg) {
-        lintCmd.help();
-        return;
+        process.exit(1);
+      }
+      tempFile = join(tmpdir(), `pincenez-stdin-${process.pid}-${Date.now()}`);
+      await writeFile(tempFile, stdinContent, 'utf8');
+      outputPath = tempFile;
     }
 
     const controller = new AbortController();
     const sigintHandler = () => {
-        process.stderr.write("[pincenez] Aborting in-flight checks...\n");
-        controller.abort();
+      process.stderr.write('[pincenez] Aborting in-flight checks...\n');
+      controller.abort();
     };
-    process.once("SIGINT", sigintHandler);
+    process.once('SIGINT', sigintHandler);
 
     try {
-        const checksPath = resolve(checksFileArg);
-        const checksFile = await loadChecksFile(checksPath);
+      const { passRate } = await run(checksFile, outputPath, {
+        model: opts.model,
+        context: opts.context,
+        controller,
+        concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
+      });
 
-        const { checksWithIssues } = await runLint(checksFile, {
-            model: opts.model,
-            context: opts.context,
-            controller,
-            concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
-        });
-
-        if (opts.verbose) {
-            process.stderr.write(
-                `[pincenez] Lint done: ${checksFile.checks.length} checks, ${checksWithIssues} with issues\n`,
-            );
-        }
-
-        if (controller.signal.aborted) {
-            process.exit(130);
-        }
-    } catch (err) {
-        if (err instanceof Error && err.name === "ZodError") {
-            process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
-            process.exit(1);
-        }
+      if (opts.verbose) {
         process.stderr.write(
-            `[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`,
+          `[pincenez] Done: ${checksFile.checks.length} checks, pass_rate=${passRate}\n`,
         );
-        process.exit(2);
+      }
+
+      if (controller.signal.aborted) {
+        process.exit(130);
+      }
     } finally {
-        process.removeListener("SIGINT", sigintHandler);
+      process.removeListener('SIGINT', sigintHandler);
+      if (tempFile) {
+        await unlink(tempFile).catch(() => {});
+      }
     }
+  } catch (err) {
+    if (err instanceof Error && err.name === 'ZodError') {
+      process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
+      process.exit(1);
+    }
+    process.stderr.write(`[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`);
+    process.exit(2);
+  }
+}
+
+export async function lintAction(
+  checksFileArg: string | undefined,
+  opts: { model?: string; context?: string; verbose?: boolean; concurrency?: string },
+  lintCmd: Command,
+) {
+  if (!checksFileArg) {
+    lintCmd.help();
+    return;
+  }
+
+  const controller = new AbortController();
+  const sigintHandler = () => {
+    process.stderr.write('[pincenez] Aborting in-flight checks...\n');
+    controller.abort();
+  };
+  process.once('SIGINT', sigintHandler);
+
+  try {
+    const checksPath = resolve(checksFileArg);
+    const checksFile = await loadChecksFile(checksPath);
+
+    const { checksWithIssues } = await runLint(checksFile, {
+      model: opts.model,
+      context: opts.context,
+      controller,
+      concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
+    });
+
+    if (opts.verbose) {
+      process.stderr.write(
+        `[pincenez] Lint done: ${checksFile.checks.length} checks, ${checksWithIssues} with issues\n`,
+      );
+    }
+
+    if (controller.signal.aborted) {
+      process.exit(130);
+    }
+  } catch (err) {
+    if (err instanceof Error && err.name === 'ZodError') {
+      process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
+      process.exit(1);
+    }
+    process.stderr.write(`[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`);
+    process.exit(2);
+  } finally {
+    process.removeListener('SIGINT', sigintHandler);
+  }
 }
 
 /* v8 ignore start -- Commander wiring; action handlers are tested directly */
 async function main() {
-    const program = new Command();
+  const program = new Command();
 
-    program
-        .name("pincenez")
-        .description(
-            "Grade LLM outputs against checks using an LLM judge.\n" +
-            "Evaluates each check independently in parallel.\n" +
-            "Returns structured YAML to stdout.",
-        )
-        .version("0.1.0")
-        .argument("[checks.yaml]", "Checks file defining checks to evaluate")
-        .argument("[output]", "File or directory for the LLM to read and evaluate (default: stdin)")
-        .option("--model <model>", "LLM judge model (default: claude-haiku-4-5)")
-        .option("--context <text>", "Override or supplement the checks file's context field")
-        .option("--concurrency <n>", "Max parallel checks", "10")
-        .option("-v, --verbose", "Print completion summary to stderr")
-        .addHelpText("after", HELP_TEXT)
-        .action(async (checksFileArg: string | undefined, outputArg: string | undefined, opts) => {
-            await gradeAction(checksFileArg, outputArg, opts, program);
-        });
+  program
+    .name('pincenez')
+    .description(
+      'Grade LLM outputs against checks using an LLM judge.\n' +
+        'Evaluates each check independently in parallel.\n' +
+        'Returns structured YAML to stdout.',
+    )
+    .version('0.1.0')
+    .argument('[checks.yaml]', 'Checks file defining checks to evaluate')
+    .argument('[output]', 'File or directory for the LLM to read and evaluate (default: stdin)')
+    .option('--model <model>', 'LLM judge model (default: claude-haiku-4-5)')
+    .option('--context <text>', "Override or supplement the checks file's context field")
+    .option('--concurrency <n>', 'Max parallel checks', '10')
+    .option('-v, --verbose', 'Print completion summary to stderr')
+    .addHelpText('after', HELP_TEXT)
+    .action(async (checksFileArg: string | undefined, outputArg: string | undefined, opts) => {
+      await gradeAction(checksFileArg, outputArg, opts, program);
+    });
 
-    const lintCmd = program
-        .command("lint [checks.yaml]")
-        .description("Check quality for common anti-patterns")
-        .option("--model <model>", "LLM model for lint analysis (default: claude-sonnet-4-6)")
-        .option("--context <text>", "Scenario prompt (helps detect tautological checks)")
-        .option("--concurrency <n>", "Max parallel checks", "10")
-        .option("-v, --verbose", "Print completion summary to stderr")
-        .addHelpText("after", getLintRulesText())
-        .action(async (checksFileArg: string | undefined, opts) => {
-            await lintAction(checksFileArg, opts, lintCmd);
-        });
+  const lintCmd = program
+    .command('lint [checks.yaml]')
+    .description('Check quality for common anti-patterns')
+    .option('--model <model>', 'LLM model for lint analysis (default: claude-sonnet-4-6)')
+    .option('--context <text>', 'Scenario prompt (helps detect tautological checks)')
+    .option('--concurrency <n>', 'Max parallel checks', '10')
+    .option('-v, --verbose', 'Print completion summary to stderr')
+    .addHelpText('after', getLintRulesText())
+    .action(async (checksFileArg: string | undefined, opts) => {
+      await lintAction(checksFileArg, opts, lintCmd);
+    });
 
-    await program.parseAsync(process.argv);
+  await program.parseAsync(process.argv);
 }
 /* v8 ignore stop */
 
@@ -234,23 +234,22 @@ async function main() {
  * Read all of stdin as a string. Returns empty string if stdin is a TTY.
  */
 export async function readStdin(): Promise<string> {
-    if (process.stdin.isTTY) return "";
+  if (process.stdin.isTTY) return '';
 
-    const chunks: Buffer[] = [];
-    for await (const chunk of process.stdin) {
-        chunks.push(chunk as Buffer);
-    }
-    return Buffer.concat(chunks).toString("utf8");
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk as Buffer);
+  }
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 /* v8 ignore start -- module-load-time direct-execution guard */
 // Only run CLI when executed directly
 const isDirectExecution =
-    process.argv[1] &&
-    (import.meta.url === `file://${process.argv[1]}` ||
-        import.meta.url.endsWith("/dist/cli.js"));
+  process.argv[1] &&
+  (import.meta.url === `file://${process.argv[1]}` || import.meta.url.endsWith('/dist/cli.js'));
 
 if (isDirectExecution) {
-    main();
+  main();
 }
 /* v8 ignore stop */
