@@ -50,9 +50,9 @@ enum AntiPattern {
 -- Authored by the user in a CheckSet (YAML file).
 external entity Check {
     id: String                    -- unique within its CheckSet
-    statement: String             -- the claim to evaluate
+    check: String                 -- the claim to evaluate
     note: String?                 -- grading hint; orients the judge
-    model_override: String?       -- per-check judge model, overrides defaults
+    model: String?                -- per-check judge model, overrides defaults
 }
 
 -- A user-authored bundle of Checks for one task.
@@ -143,7 +143,7 @@ contract Judge {
 
     @guidance
         -- The judge is invoked with a system prompt establishing it as
-        -- a grader, a user prompt containing the Check's statement,
+        -- a grader, a user prompt containing the Check's check text,
         -- optional note, the run's effective context, and the output
         -- path. The model parameter is a Claude model identifier.
 }
@@ -315,7 +315,7 @@ rule SchedulePerCheckGrading {
         ensures: CheckGradeRequested(
             run: run,
             check: check,
-            model: check.model_override ?? run.judge_default_model,
+            model: check.model ?? run.judge_default_model,
             context: run.effective_context
         )
 
@@ -545,7 +545,7 @@ surface GradeCommand {
             run.errored_count
             for r in run.results:
                 r.check.id
-                r.check.statement
+                r.check.check
                 r.verdict
                 r.evidence
 
@@ -589,7 +589,7 @@ surface LintCommand {
             run.checks_with_issues
             for r in run.results:
                 r.check.id
-                r.check.statement
+                r.check.check
                 r.issues
 
     provides:
