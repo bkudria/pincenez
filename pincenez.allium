@@ -15,32 +15,11 @@
 -- Excludes:
 --   - SDK call mechanics (env handling, persistSession, abort plumbing)
 --   - YAML serialization mechanics (block literals, indentation)
---   - Concurrency pool implementation (the parallel-evaluation cap)
+--   - Concurrency pool implementation and the --concurrency flag
+--     (an operational knob; tunes parallelism, no behavioural meaning)
 --   - File I/O mechanics (stdin temp file lifecycle, path resolution)
 --   - Build/test infrastructure (TypeScript, Zod, vitest, ESLint)
 --   - Specific Anthropic model identifiers (treated as configuration)
-
-------------------------------------------------------------
--- Enumerations
-------------------------------------------------------------
-
--- The outcome of grading one Check against one Output.
-enum Verdict {
-    passed                       -- judge returned pass = true
-  | failed                       -- judge returned pass = false
-  | errored                      -- judge call could not produce a verdict
-}
-
--- The lint anti-pattern categories detected on Checks.
-enum AntiPattern {
-    vague                        -- subjective terms without specifics
-  | compound                     -- multiple independent claims in one check
-  | tautological                 -- restates the prompt without specificity
-  | always_passes                -- tests baseline LLM behaviour
-  | unverifiable                 -- references internal state, not output
-  | over_specific                -- prescribes one means when alternatives exist
-  | error                        -- analyst itself errored on this check
-}
 
 ------------------------------------------------------------
 -- External Entities
@@ -48,6 +27,7 @@ enum AntiPattern {
 
 -- A binary, objectively verifiable claim about an Output.
 -- Authored by the user in a CheckSet (YAML file).
+-- Governed by: the YAML schema in src/config.ts (Zod CheckValueSchema).
 external entity Check {
     id: String                    -- unique within its CheckSet
     check: String                 -- the claim to evaluate
@@ -56,6 +36,7 @@ external entity Check {
 }
 
 -- A user-authored bundle of Checks for one task.
+-- Governed by: the YAML schema in src/config.ts (Zod ChecksFileRawSchema).
 external entity CheckSet {
     context: String?              -- task description orienting the judge
     checks: List<Check>           -- non-empty
@@ -68,11 +49,13 @@ external entity CheckSet {
 }
 
 -- The artifact a judge reads while evaluating Checks.
+-- Governed by: the OS filesystem (a path supplied to the CLI; see SPEC.md).
 external entity Output {
     path: String                  -- absolute path to file or directory
 }
 
 -- The shell user invoking the pincenez CLI.
+-- Governed by: the OS shell environment; identity is the invoking process.
 external entity User {
     invocation_pid: Integer       -- present so the entity has identity
 }
@@ -178,6 +161,28 @@ contract LintAnalyst {
 }
 
 ------------------------------------------------------------
+-- Enumerations
+------------------------------------------------------------
+
+-- The outcome of grading one Check against one Output.
+enum Verdict {
+    passed                       -- judge returned pass = true
+  | failed                       -- judge returned pass = false
+  | errored                      -- judge call could not produce a verdict
+}
+
+-- The lint anti-pattern categories detected on Checks.
+enum AntiPattern {
+    vague                        -- subjective terms without specifics
+  | compound                     -- multiple independent claims in one check
+  | tautological                 -- restates the prompt without specificity
+  | always_passes                -- tests baseline LLM behaviour
+  | unverifiable                 -- references internal state, not output
+  | over_specific                -- prescribes one means when alternatives exist
+  | error                        -- analyst itself errored on this check
+}
+
+------------------------------------------------------------
 -- Entities
 ------------------------------------------------------------
 
@@ -258,6 +263,7 @@ entity LintRun {
     unfinished_checks: checkset.checks - linted_checks
 
     all_results_in: results.count = checkset.checks.count
+    checks_total: checkset.checks.count
     checks_with_issues: flagged_results.count
 
     transitions status {
@@ -383,26 +389,20 @@ rule AbortGradingRun {
 
     ensures: run.status = aborted
     ensures: run.completed_at = now
-    ensures:
-        for check in run.unfinished_checks:
-            GradingResult.created(
-                run: run,
-                check: check,
-                verdict: errored,
-                evidence: "error: aborted before grading completed",
-                cost_usd: 0,
-                cache_creation_tokens: 0,
-                cache_read_tokens: 0,
-                completed_at: now
-            )
 
     @guidance
-        -- Triggered by SIGINT. The aggregate summary is not emitted, but
-        -- every Check in the CheckSet ends up with a GradingResult: those
-        -- that completed before the abort carry their judge verdict; those
-        -- still in flight (or never scheduled) carry verdict = errored
-        -- with abort-specific evidence. Downstream consumers thus see
-        -- full per-check coverage even on abort.
+        -- Triggered by SIGINT. All Checks in the CheckSet are pre-scheduled
+        -- by SchedulePerCheckGrading before any abort can fire; their
+        -- per-check evaluations observe the abort signal and resolve through
+        -- the EvaluateCheck rule with grade() returning an SDK error
+        -- response. Thus every Check still ends up with a GradingResult:
+        -- those that completed before the abort carry their judge verdict;
+        -- those interrupted by the abort carry verdict = errored with
+        -- SDK-derived evidence text (not a fixed literal) and may reflect
+        -- partial cost_usd / cache token billing accumulated before the
+        -- abort. The aggregate summary still follows (per StreamingResults)
+        -- and meaningfully reports pass_rate plus the errored count.
+        -- Symmetric with AbortLintRun.
 }
 
 -- Linting flow ----------------------------------------------------
@@ -480,20 +480,16 @@ rule AbortLintRun {
 
     ensures: run.status = aborted
     ensures: run.completed_at = now
-    ensures:
-        for check in run.unfinished_checks:
-            LintResult.created(
-                run: run,
-                check: check,
-                issues: { { anti_pattern: error, suggestion: "error: aborted before linting completed" } },
-                cost_usd: 0,
-                completed_at: now
-            )
 
     @guidance
-        -- Symmetric with AbortGradingRun: every Check ends up with a
-        -- LintResult; in-flight or never-scheduled checks carry a single
-        -- error-pattern issue with abort-specific suggestion text.
+        -- All Checks in the LintRun are pre-scheduled by SchedulePerCheckLint
+        -- before any abort can fire; their per-check evaluations observe the
+        -- abort signal and resolve through the LintCheck rule with analyse()
+        -- returning an SDK error response. Thus every Check still ends up
+        -- with a LintResult carrying a single error-pattern issue whose
+        -- suggestion text is SDK-derived (not a fixed literal); cost_usd
+        -- may reflect partial billing accumulated before the abort.
+        -- Symmetric with AbortGradingRun.
 }
 
 ------------------------------------------------------------
@@ -554,9 +550,6 @@ surface GradeCommand {
 
     exposes:
         for run in GradingRuns where status in {complete, aborted}:
-            run.checkset
-            run.output
-            run.status
             run.pass_rate
             run.errored
             run.cost_usd
@@ -565,7 +558,7 @@ surface GradeCommand {
             for r in run.results:
                 r.check.id
                 r.check.check
-                r.verdict
+                r.pass
                 r.evidence
 
     provides:
@@ -600,6 +593,11 @@ surface GradeCommand {
         -- When verbose_flag is set, the CLI writes a single summary line
         -- to stderr after the run completes, naming the check count and
         -- pass_rate. Stdout YAML is unaffected.
+
+    @guidance
+        -- The CLI accepts operational knobs (e.g. --concurrency) that tune
+        -- parallelism without altering domain behaviour. They are not part
+        -- of this surface's contract.
 }
 
 -- The lint subcommand: user inspects a CheckSet for quality anti-patterns.
@@ -608,8 +606,7 @@ surface LintCommand {
 
     exposes:
         for run in LintRuns where status in {complete, aborted}:
-            run.checkset
-            run.status
+            run.checks_total
             run.checks_with_issues
             for r in run.results:
                 r.check.id
@@ -637,6 +634,11 @@ surface LintCommand {
         -- When verbose_flag is set, the CLI writes a single summary line
         -- to stderr after the run completes, naming the check count and
         -- the number of checks with issues. Stdout YAML is unaffected.
+
+    @guidance
+        -- The CLI accepts operational knobs (e.g. --concurrency) that tune
+        -- parallelism without altering domain behaviour. They are not part
+        -- of this surface's contract.
 }
 
 -- The integration boundary with the judge LLM.
