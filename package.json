@@ -39,7 +39,8 @@
     "lint": "eslint src/ tests/",
     "format": "prettier --write src/ tests/",
     "format:check": "prettier --check src/ tests/",
-    "dev": "tsx src/cli.ts"
+    "dev": "tsx src/cli.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.114",
@@ -49,10 +50,13 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.5.3",
+    "@commitlint/config-conventional": "^20.5.3",
     "@eslint/js": "^10.0.1",
     "@types/node": "^25.6.0",
     "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^10.2.1",
+    "husky": "^9.1.7",
     "prettier": "3.8.3",
     "tsx": "^4.19.0",
     "typescript": "^6.0.3",
