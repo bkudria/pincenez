@@ -205,7 +205,10 @@ entity GradingRun {
     -- Derived
     all_results_in: results.count = checkset.checks.count
     pass_rate: passed_results.count / checkset.checks.count
-    errored_count: errored_results.count
+    errored: errored_results.count
+    cost_usd: sum(results.cost_usd)
+    cache_creation_tokens: sum(results.cache_creation_tokens)
+    cache_read_tokens: sum(results.cache_read_tokens)
 
     transitions status {
         in_progress -> complete
@@ -231,6 +234,12 @@ entity GradingResult {
     cache_creation_tokens: Integer
     cache_read_tokens: Integer
     completed_at: Timestamp
+
+    -- Wire-format projection: passed -> true, failed -> false, errored -> null.
+    -- The CLI emits this as `pass:` per result.
+    pass: if verdict = passed: true
+          else if verdict = failed: false
+          else: null
 }
 
 -- A single linting invocation: one CheckSet, producing one LintResult per Check.
@@ -359,7 +368,12 @@ rule FinalizeGradingRun {
 
     @guidance
         -- On completion, the CLI emits the aggregate summary
-        -- (pass_rate, errored_count if > 0, cost_usd if > 0).
+        -- (pass_rate, errored if > 0, cost_usd if > 0,
+        --  cache_creation_tokens if > 0, cache_read_tokens if > 0).
+        -- The summary intentionally omits a checks_total field: pass_rate
+        -- already conveys the denominator (passed_count = pass_rate * total),
+        -- and the streamed results array makes the count directly observable.
+        -- LintRun emits checks_total because there is no equivalent ratio.
 }
 
 rule AbortGradingRun {
@@ -542,7 +556,10 @@ surface GradeCommand {
             run.output
             run.status
             run.pass_rate
-            run.errored_count
+            run.errored
+            run.cost_usd
+            run.cache_creation_tokens
+            run.cache_read_tokens
             for r in run.results:
                 r.check.id
                 r.check.check

@@ -88,7 +88,7 @@ pass_rate: 0.67
 
 ### Cost Tracking
 
-Each check's result includes `cost_usd` reflecting the SDK session cost for grading that one check. The summary's `cost_usd` is the sum across all checks in the file. Both per-check and aggregate costs are rounded to 4 decimals.
+The summary includes `cost_usd` — the sum of SDK session costs across all checks in the file, rounded to 4 decimals. The summary also includes `cache_creation_tokens` and `cache_read_tokens` when non-zero. Per-check costs are tracked internally to compute these aggregates but are not emitted per-result.
 
 ### Error Semantics
 
