@@ -299,7 +299,8 @@ rule StartGradingRun {
         checkset,
         output,
         model_flag?,
-        context_flag?
+        context_flag?,
+        verbose_flag?
     )
 
     requires: checkset.checks.count >= 1
@@ -411,7 +412,8 @@ rule StartLintRun {
         user,
         checkset,
         model_flag?,
-        context_flag?
+        context_flag?,
+        verbose_flag?
     )
 
     requires: checkset.checks.count >= 1
@@ -567,7 +569,7 @@ surface GradeCommand {
                 r.evidence
 
     provides:
-        GradeRequested(user, checkset, output, model_flag?, context_flag?)
+        GradeRequested(user, checkset, output, model_flag?, context_flag?, verbose_flag?)
         for run in GradingRuns where status = in_progress:
             AbortGradingRequested(run)
 
@@ -593,6 +595,11 @@ surface GradeCommand {
         -- It does not affect the exit code. Downstream consumers distinguish
         -- "the check failed" from "the grader could not produce a verdict"
         -- by inspecting verdict and evidence.
+
+    @guarantee VerboseSummary
+        -- When verbose_flag is set, the CLI writes a single summary line
+        -- to stderr after the run completes, naming the check count and
+        -- pass_rate. Stdout YAML is unaffected.
 }
 
 -- The lint subcommand: user inspects a CheckSet for quality anti-patterns.
@@ -610,7 +617,7 @@ surface LintCommand {
                 r.issues
 
     provides:
-        LintRequested(user, checkset, model_flag?, context_flag?)
+        LintRequested(user, checkset, model_flag?, context_flag?, verbose_flag?)
         for run in LintRuns where status = in_progress:
             AbortLintRequested(run)
 
@@ -625,6 +632,11 @@ surface LintCommand {
         -- Same exit code taxonomy as GradeCommand.
         -- A LintResult with anti_pattern = error does not affect the exit
         -- code; it is the analyst-level analogue of verdict = errored.
+
+    @guarantee VerboseSummary
+        -- When verbose_flag is set, the CLI writes a single summary line
+        -- to stderr after the run completes, naming the check count and
+        -- the number of checks with issues. Stdout YAML is unaffected.
 }
 
 -- The integration boundary with the judge LLM.
