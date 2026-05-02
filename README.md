@@ -4,7 +4,7 @@
 
 A TypeScript CLI that grades LLM outputs against checks files using an LLM judge. Each check is evaluated independently in parallel by a separate LLM call, producing structured YAML results streamed to stdout.
 
-## Install
+## Installation
 
 ```bash
 git clone <repo-url> && cd pincenez
@@ -13,7 +13,7 @@ npm run build
 npm link          # makes `pincenez` available globally
 ```
 
-## Quick Start
+## Usage
 
 ```bash
 # Grade a file against a checks file
