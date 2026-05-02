@@ -28,7 +28,17 @@ const LINT_SCHEMA = {
       items: {
         type: 'object' as const,
         properties: {
-          anti_pattern: { type: 'string' as const },
+          anti_pattern: {
+            type: 'string' as const,
+            enum: [
+              'vague',
+              'compound',
+              'tautological',
+              'always_passes',
+              'unverifiable',
+              'over_specific',
+            ],
+          },
           suggestion: { type: 'string' as const },
         },
         required: ['anti_pattern', 'suggestion'],

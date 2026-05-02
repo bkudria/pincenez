@@ -185,6 +185,35 @@ describe('lintCheck', () => {
     );
   });
 
+  it('constrains anti_pattern in JSON schema to the six AntiPattern literals', async () => {
+    mockQuery.mockReturnValue(asyncMessages([resultMessage('{"issues": []}')]));
+
+    await lintCheck(testCheck);
+
+    const callArgs = mockQuery.mock.calls[0][0];
+    const outputFormat = callArgs.options?.outputFormat as
+      | { type: 'json_schema'; schema: Record<string, unknown> }
+      | undefined;
+    const schema = outputFormat?.schema as {
+      properties: {
+        issues: {
+          items: {
+            properties: { anti_pattern: { enum?: string[] } };
+          };
+        };
+      };
+    };
+    const antiPatternProp = schema.properties.issues.items.properties.anti_pattern;
+    expect(antiPatternProp.enum).toEqual([
+      'vague',
+      'compound',
+      'tautological',
+      'always_passes',
+      'unverifiable',
+      'over_specific',
+    ]);
+  });
+
   it('returns error issue when SDK throws', async () => {
     mockQuery.mockImplementation(() => {
       throw new Error('SDK connection failed');
