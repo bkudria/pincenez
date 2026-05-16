@@ -1,6 +1,6 @@
 # Pincenez
 
-> **Unreleased.** Pincenez is under active development and its API, checks file format, and behavior may change without notice.
+> **0.x.** Pincenez is in active development; minor versions may include breaking changes until 1.0.
 
 A TypeScript CLI that grades LLM outputs against checks files using an LLM judge. Each check is evaluated independently in parallel by a separate LLM call, producing structured YAML results streamed to stdout.
 

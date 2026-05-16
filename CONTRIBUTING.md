@@ -23,4 +23,4 @@ The hook is installed automatically when you run `npm install` (via the `prepare
 
 - Target the `main` branch.
 - CI must pass (`lint`, `format:check`, `build`, `test`) — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
-- Add a [CHANGELOG.md](CHANGELOG.md) entry under `## [Unreleased]` for user-visible changes.
+- Do not edit `CHANGELOG.md` or bump `package.json` manually. Releases are driven by Conventional Commit messages on `main` via [release-please](RELEASING.md).

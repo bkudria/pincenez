@@ -38,7 +38,7 @@ body:
     attributes:
       label: pincenez version
       description: Output of `pincenez --version`
-      placeholder: 0.1.0
+      placeholder: 0.0.1
     validations:
       required: true
 

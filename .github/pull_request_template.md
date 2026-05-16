@@ -8,6 +8,5 @@
 
 ## Checklist
 
-- [ ] Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (enforced by `commit-msg` hook)
-- [ ] CHANGELOG.md updated under `## [Unreleased]` for user-visible changes
+- [ ] Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (enforced by `commit-msg` hook) — release-please derives version bumps and `CHANGELOG.md` from these
 - [ ] `npm run lint`, `npm run format:check`, `npm run build`, `npm test` all pass locally
