@@ -10,6 +10,15 @@ A TypeScript CLI that grades LLM outputs against checks files using an LLM judge
 
 <!-- Source: assets/demo.tape — re-record with `vhs assets/demo.tape`. -->
 
+## Where pincenez fits
+
+Pincenez is one tool in a small UNIX-style pipeline for evaluating Claude sessions:
+
+- **[scuttlerun](https://github.com/bkudria/scuttlerun)** drives a headless Claude session and emits a YAML transcript on stdout.
+- **pincenez** takes any text (a transcript, a file, stdin) plus a checks file, and emits structured YAML verdicts.
+
+The two compose by pipe — `scuttlerun session.yaml | pincenez checks.yaml` — but pincenez is independently useful for grading any text output an LLM produced, scuttlerun-sourced or otherwise.
+
 ## Installation
 
 ```bash
@@ -100,7 +109,7 @@ Results appear in arrival order (whichever check finishes first). `pass_rate` is
 
 The [`examples/`](https://github.com/bkudria/pincenez/tree/main/examples) directory has runnable checks/transcript pairs:
 
-- [`examples/haiku`](https://github.com/bkudria/pincenez/tree/main/examples/haiku) — checks a haiku transcript against topic/file/syllable rules.
+- [`examples/haiku`](https://github.com/bkudria/pincenez/tree/main/examples/haiku) — checks a haiku transcript against topic/file/syllable rules. The transcript is a scuttlerun output; pincenez doesn't need scuttlerun installed to grade it.
 - [`examples/tdd`](https://github.com/bkudria/pincenez/tree/main/examples/tdd) — checks that tests were written before production code.
 - [`examples/calculator`](https://github.com/bkudria/pincenez/tree/main/examples/calculator) — a scuttlerun [`scenario.yaml`](https://github.com/bkudria/pincenez/blob/main/examples/calculator/scenario.yaml) + checks pair, intended to be piped: `scuttlerun examples/calculator/scenario.yaml | pincenez examples/calculator/checks.yaml`.
 
