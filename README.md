@@ -4,6 +4,10 @@
 
 A TypeScript CLI that grades LLM outputs against checks files using an LLM judge. Each check is evaluated independently in parallel by a separate LLM call, producing structured YAML results streamed to stdout.
 
+![Demo: pincenez grading a TDD example transcript, streaming YAML verdicts to stdout](assets/demo.gif)
+
+> Source: [`assets/demo.tape`](assets/demo.tape) (re-record with `vhs assets/demo.tape`).
+
 ## Installation
 
 ```bash
@@ -139,7 +143,16 @@ npm run test:coverage    # Tests with coverage report
 npm run dev -- examples/checks.yaml examples/output.md   # Run via tsx
 ```
 
+## Contributing
+
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Development setup, tests, commit conventions, PR workflow
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) — Community guidelines
+- [SECURITY.md](SECURITY.md) — Reporting a vulnerability
+- [SUPPORT.md](SUPPORT.md) — Where to ask questions and report bugs
+- [CHANGELOG.md](CHANGELOG.md) — Release history
+- [RELEASING.md](RELEASING.md) — How releases are cut (Conventional Commits → release-please → npm publish)
+
 ## See Also
 
-- [SPEC.md](SPEC.md) — Full specification and design decisions
 - [GOALS.md](GOALS.md) — Design philosophy and research principles
+- [pincenez.allium](pincenez.allium) — Full specification (Allium)
