@@ -5,10 +5,14 @@ import { writeFile, unlink } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
 import { loadChecksFile } from './config.js';
 import { run } from './runner.js';
 import { runLint } from './lint-runner.js';
 import { getLintRulesText } from './lint-prompt.js';
+
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json') as { version: string };
 
 const HELP_TEXT = `
 Checks File Schema (YAML):
@@ -202,7 +206,7 @@ async function main() {
         'Evaluates each check independently in parallel.\n' +
         'Returns structured YAML to stdout.',
     )
-    .version('0.1.0')
+    .version(pkg.version)
     .argument('[checks.yaml]', 'Checks file defining checks to evaluate')
     .argument('[output]', 'File or directory for the LLM to read and evaluate (default: stdin)')
     .option('--model <model>', 'LLM judge model (default: claude-haiku-4-5)')
