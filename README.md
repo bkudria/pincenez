@@ -94,6 +94,21 @@ pass_rate: 0.67
 
 Results appear in arrival order (whichever check finishes first). `pass_rate` is written after all checks complete.
 
+## Examples
+
+The [`examples/`](https://github.com/bkudria/pincenez/tree/main/examples) directory has runnable checks/transcript pairs:
+
+- [`examples/haiku`](https://github.com/bkudria/pincenez/tree/main/examples/haiku) — checks a haiku transcript against topic/file/syllable rules.
+- [`examples/tdd`](https://github.com/bkudria/pincenez/tree/main/examples/tdd) — checks that tests were written before production code.
+- [`examples/calculator`](https://github.com/bkudria/pincenez/tree/main/examples/calculator) — a scuttlerun [`scenario.yaml`](https://github.com/bkudria/pincenez/blob/main/examples/calculator/scenario.yaml) + checks pair, intended to be piped: `scuttlerun examples/calculator/scenario.yaml | pincenez examples/calculator/checks.yaml`.
+
+Clone the repo to run them:
+
+```bash
+git clone https://github.com/bkudria/pincenez.git && cd pincenez
+pincenez examples/haiku/checks.yaml examples/haiku/transcript.yaml
+```
+
 ## CLI
 
 ```
@@ -154,7 +169,7 @@ npm run build            # TypeScript compilation
 npm test                 # Run all tests (vitest)
 npm run test:watch       # Watch mode
 npm run test:coverage    # Tests with coverage report
-npm run dev -- examples/checks.yaml examples/output.md   # Run via tsx
+npm run dev -- examples/haiku/checks.yaml examples/haiku/transcript.yaml   # Run via tsx
 ```
 
 ## Contributing
