@@ -6,7 +6,9 @@ A TypeScript CLI that grades LLM outputs against checks files using an LLM judge
 
 ![Demo: pincenez grading a TDD example transcript, streaming YAML verdicts to stdout](assets/demo.gif)
 
-> Source: [`assets/demo.tape`](assets/demo.tape) (re-record with `vhs assets/demo.tape`).
+*Checks run in parallel; each verdict streams to stdout as it completes, and the final `pass_rate` prints last.*
+
+<!-- Source: assets/demo.tape — re-record with `vhs assets/demo.tape`. -->
 
 ## Installation
 
