@@ -11,11 +11,25 @@ A TypeScript CLI that grades LLM outputs against checks files using an LLM judge
 ## Installation
 
 ```bash
-git clone <repo-url> && cd pincenez
-npm install
-npm run build
-npm link          # makes `pincenez` available globally
+npm install -g pincenez
 ```
+
+Or run without installing:
+
+```bash
+npx pincenez checks.yaml output.md
+```
+
+## Prerequisites
+
+- **Node.js 24** or newer.
+- **`ANTHROPIC_API_KEY`** exported in your environment. Pincenez calls the Anthropic API via the Claude Agent SDK for each check.
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+```
+
+See [SECURITY.md](SECURITY.md#privacy--data-flow) for what gets sent off your machine on each run.
 
 ## Usage
 
