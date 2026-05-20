@@ -1,3 +1,4 @@
+import { dirname } from 'node:path';
 import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '@anthropic-ai/claude-agent-sdk';
 import type { SDKResultError } from '@anthropic-ai/claude-agent-sdk';
 import type { Check } from './config.js';
@@ -79,6 +80,7 @@ export async function gradeCheck(
         model,
         env: { ...process.env, CLAUDECODE: undefined },
         tools: ['Read'],
+        additionalDirectories: [dirname(outputPath)],
         maxTurns: 30,
         permissionMode: 'bypassPermissions',
         allowDangerouslySkipPermissions: true,
