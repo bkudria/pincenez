@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { parse as parseYaml } from 'yaml';
 import { writeYamlArrayItem } from '../src/yaml-utils.js';
 
 describe('writeYamlArrayItem', () => {
@@ -59,5 +60,49 @@ describe('writeYamlArrayItem', () => {
     writeYamlArrayItem({ id: 'x' });
 
     expect(written).toMatch(/\n$/);
+  });
+
+  describe('line wrapping', () => {
+    it('renders long single-line strings as block-folded (`>`)', () => {
+      const text = 'a long single-line string '.repeat(8).trim();
+      writeYamlArrayItem({ evidence: text });
+      expect(written).toMatch(/evidence: >-?\n/);
+      const parsed = parseYaml('checks:\n' + written);
+      expect(parsed.checks[0].evidence).toBe(text);
+    });
+
+    it('keeps short single-line strings as plain scalars', () => {
+      writeYamlArrayItem({ evidence: 'short' });
+      expect(written).not.toMatch(/evidence: >-?\n/);
+      expect(written).toContain('evidence: short');
+    });
+
+    it('wraps final output to fit 80 cols (block-folded single-line strings)', () => {
+      const text = 'x '.repeat(80).trim();
+      writeYamlArrayItem({ evidence: text });
+      const longest = Math.max(...written.split('\n').map((l) => l.length));
+      expect(longest).toBeLessThanOrEqual(80);
+    });
+
+    it('hard-wraps long lines inside multi-line strings before block-literal serialization', () => {
+      const longInternal =
+        'alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega extra padding words here';
+      writeYamlArrayItem({ evidence: `First line\n${longInternal}\nLast line` });
+      const longest = Math.max(...written.split('\n').map((l) => l.length));
+      expect(longest).toBeLessThanOrEqual(80);
+      const parsed = parseYaml('checks:\n' + written);
+      expect(parsed.checks[0].evidence).toContain('First line');
+      expect(parsed.checks[0].evidence).toContain('Last line');
+      for (const line of parsed.checks[0].evidence.split('\n')) {
+        expect(line.length).toBeLessThanOrEqual(72);
+      }
+    });
+
+    it('leaves unbreakable strings (no whitespace) unwrapped', () => {
+      const blob = 'a'.repeat(200);
+      writeYamlArrayItem({ evidence: blob });
+      const parsed = parseYaml('checks:\n' + written);
+      expect(parsed.checks[0].evidence).toBe(blob);
+    });
   });
 });

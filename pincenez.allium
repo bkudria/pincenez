@@ -572,7 +572,14 @@ surface GradeCommand {
     @guarantee StreamingResults
         -- GradingResults are emitted to the user's stdout in arrival order
         -- (whichever check finishes first), not input order. The aggregate
-        -- summary is emitted only after all results are in.
+        -- summary is emitted only after all results are in. Long
+        -- single-line strings render in block-folded (`>`) style;
+        -- multi-line strings render in block-literal (`|`) style. Lines
+        -- exceeding 80 columns in the final output are wrapped — by the
+        -- YAML serializer for block-folded scalars and by hard-wrapping
+        -- at word boundaries for block-literal scalars. Strings without
+        -- any whitespace break point are preserved verbatim even when
+        -- longer than 80 columns.
 
     @guarantee ExitCodeSemantics
         -- The CLI exits 0 when a run reaches status = complete.
@@ -623,7 +630,14 @@ surface LintCommand {
 
     @guarantee StreamingResults
         -- LintResults are emitted in arrival order. The aggregate summary
-        -- (checks_total, checks_with_issues, cost_usd) follows.
+        -- (checks_total, checks_with_issues, cost_usd) follows. Long
+        -- single-line strings render in block-folded (`>`) style;
+        -- multi-line strings render in block-literal (`|`) style. Lines
+        -- exceeding 80 columns in the final output are wrapped — by the
+        -- YAML serializer for block-folded scalars and by hard-wrapping
+        -- at word boundaries for block-literal scalars. Strings without
+        -- any whitespace break point are preserved verbatim even when
+        -- longer than 80 columns.
 
     @guarantee ExitCodeSemantics
         -- Same exit code taxonomy as GradeCommand.
