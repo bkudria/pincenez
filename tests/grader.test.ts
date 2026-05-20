@@ -232,6 +232,20 @@ describe('gradeCheck', () => {
     );
   });
 
+  it('grants Read access to the output file directory via additionalDirectories', async () => {
+    mockQuery.mockReturnValue(asyncMessages([resultMessage('{"pass": true, "evidence": "ok"}')]));
+
+    await gradeCheck(testCheck, '/var/folders/xx/rep-1/output.yaml');
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          additionalDirectories: ['/var/folders/xx/rep-1'],
+        }),
+      }),
+    );
+  });
+
   it('passes static instructions as cache-eligible systemPrompt and per-check content as prompt', async () => {
     mockQuery.mockReturnValue(asyncMessages([resultMessage('{"pass": true, "evidence": "ok"}')]));
 
