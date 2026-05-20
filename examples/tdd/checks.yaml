@@ -5,9 +5,11 @@ context: |
 checks:
   - test-before-code:
       check: A test file was written before or alongside the production code
-      note: Look for Write tool calls — the test file should appear before the implementation file
+      note: |
+        Look for Write tool calls — the test file should appear before the
+        implementation file
   - function-exists:
       check: The isPrime function exists in prime.js
   - tests-validate:
-      check: At least one test case validates isPrime with both prime and non-prime inputs
+      check: At least one case validates isPrime with both prime and non-prime inputs
       note: The test should actually exercise the function, not just import it

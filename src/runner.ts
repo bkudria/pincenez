@@ -2,7 +2,7 @@ import pLimit from 'p-limit';
 import { stringify as yamlStringify } from 'yaml';
 import type { ChecksFile } from './config.js';
 import { gradeCheck, type CheckResult } from './grader.js';
-import { writeYamlArrayItem } from './yaml-utils.js';
+import { LINE_WIDTH, writeYamlArrayItem } from './yaml-utils.js';
 
 export interface RunOptions {
   model?: string;
@@ -72,7 +72,7 @@ export async function run(
   const cacheReadTotal = results.reduce((sum, r) => sum + r.cache_read_tokens, 0);
   if (cacheCreationTotal > 0) summary.cache_creation_tokens = cacheCreationTotal;
   if (cacheReadTotal > 0) summary.cache_read_tokens = cacheReadTotal;
-  process.stdout.write(yamlStringify(summary, { lineWidth: 0 }));
+  process.stdout.write(yamlStringify(summary, { lineWidth: LINE_WIDTH }));
 
   return { results, passRate, costUsd };
 }

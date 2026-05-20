@@ -2,7 +2,7 @@ import pLimit from 'p-limit';
 import { stringify as yamlStringify } from 'yaml';
 import type { ChecksFile } from './config.js';
 import { lintCheck, type LintResult } from './linter.js';
-import { writeYamlArrayItem } from './yaml-utils.js';
+import { LINE_WIDTH, writeYamlArrayItem } from './yaml-utils.js';
 
 export interface LintRunOptions {
   model?: string;
@@ -62,7 +62,7 @@ export async function runLint(
   if (costUsd > 0) {
     summary.cost_usd = costUsd;
   }
-  process.stdout.write(yamlStringify(summary, { lineWidth: 0 }));
+  process.stdout.write(yamlStringify(summary, { lineWidth: LINE_WIDTH }));
 
   return { results, checksWithIssues, costUsd };
 }
