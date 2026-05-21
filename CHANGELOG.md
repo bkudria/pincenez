@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/bkudria/pincenez/compare/v0.1.0...v0.1.1) (2026-05-20)
+
+
+### Bug Fixes
+
+* **grader:** grant Read access to output dir under SDK 0.3 sandbox ([#12](https://github.com/bkudria/pincenez/issues/12)) ([8c7158c](https://github.com/bkudria/pincenez/commit/8c7158c95c868524b1509a28afac55aa9a2f8de0))
+
 ## [0.1.0](https://github.com/bkudria/pincenez/compare/v0.0.1...v0.1.0) (2026-05-17)
 
 
