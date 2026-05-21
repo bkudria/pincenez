@@ -19,8 +19,9 @@ Pincenez is one tool in a small UNIX-style pipeline for evaluating Claude sessio
 
 - **[scuttlerun](https://github.com/bkudria/scuttlerun)** drives a headless Claude session and emits a YAML transcript on stdout.
 - **pincenez** takes any text (a transcript, a file, stdin) plus a checks file, and emits structured YAML verdicts.
+- **[craboodle](https://github.com/bkudria/craboodle)** orchestrates many scuttlerun + pincenez invocations across a directory of eval scenarios, averaging across repetitions.
 
-The two compose by pipe — `scuttlerun session.yaml | pincenez checks.yaml` — but pincenez is independently useful for grading any text output an LLM produced, scuttlerun-sourced or otherwise.
+scuttlerun and pincenez compose by pipe — `scuttlerun session.yaml | pincenez checks.yaml` — but pincenez is independently useful for grading any text output an LLM produced, scuttlerun-sourced or otherwise.
 
 ## Installation
 
