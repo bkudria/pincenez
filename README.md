@@ -1,5 +1,8 @@
 # Pincenez
 
+[![npm version](https://img.shields.io/npm/v/pincenez.svg)](https://www.npmjs.com/package/pincenez)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > **0.x.** Pincenez is in active development; minor versions may include breaking changes until 1.0.
 
 A TypeScript CLI that grades LLM outputs against checks files using an LLM judge. Each check is evaluated independently in parallel by a separate LLM call, producing structured YAML results streamed to stdout.
@@ -21,17 +24,7 @@ The two compose by pipe — `scuttlerun session.yaml | pincenez checks.yaml` —
 
 ## Installation
 
-```bash
-npm install -g pincenez
-```
-
-Or run without installing:
-
-```bash
-npx pincenez checks.yaml output.md
-```
-
-## Prerequisites
+### Prerequisites
 
 - **Node.js 24** or newer.
 - **`ANTHROPIC_API_KEY`** exported in your environment. Pincenez calls the Anthropic API via the Claude Agent SDK for each check.
@@ -41,6 +34,18 @@ export ANTHROPIC_API_KEY=sk-ant-...
 ```
 
 See [SECURITY.md](SECURITY.md#privacy--data-flow) for what gets sent off your machine on each run.
+
+### Install
+
+```bash
+npm install -g pincenez
+```
+
+Or run without installing:
+
+```bash
+npx pincenez checks.yaml output.md
+```
 
 ## Usage
 
@@ -134,17 +139,6 @@ pincenez [options] <checks.yaml> [output]
 | `-V, --version` | Show version |
 | `-h, --help` | Show help with full checks file schema reference |
 
-### Exit Codes
-
-Subset of the shared scuttlerun/pincenez/craboodle taxonomy — see [scuttlerun/README.md#exit-codes](https://github.com/bkudria/scuttlerun#exit-codes) for the canonical table. Source: [`src/exit-codes.ts`](src/exit-codes.ts).
-
-| Code | Meaning |
-|------|---------|
-| 0 | Ran successfully (regardless of check results) |
-| 1 | Checks file error (invalid YAML, missing fields) |
-| 2 | Runtime error (SDK failure, API error, unhandled exception) |
-| 130 | Interrupted (SIGINT) |
-
 ### Lint
 
 Check checks for common quality anti-patterns before spending money on eval runs:
@@ -155,6 +149,17 @@ pincenez lint checks.yaml --context "The prompt that produced this output"
 ```
 
 Detects 6 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific. Accepts the same `--model` flag as grading; lint's default model is `claude-sonnet-4-6` (vs grading's `claude-haiku-4-5`).
+
+## Exit Codes
+
+Subset of the shared scuttlerun/pincenez/craboodle taxonomy — see [scuttlerun/README.md#exit-codes](https://github.com/bkudria/scuttlerun#exit-codes) for the canonical table. Source: [`src/exit-codes.ts`](src/exit-codes.ts).
+
+| Code | Meaning |
+|------|---------|
+| 0 | Ran successfully (regardless of check results) |
+| 1 | Checks file error (invalid YAML, missing fields) |
+| 2 | Runtime error (SDK failure, API error, unhandled exception) |
+| 130 | Interrupted (SIGINT) |
 
 ## Composition
 
@@ -196,3 +201,7 @@ npm run dev -- examples/haiku/checks.yaml examples/haiku/transcript.yaml   # Run
 
 - [GOALS.md](GOALS.md) — Design philosophy and research principles
 - [pincenez.allium](pincenez.allium) — Full specification (Allium)
+
+## License
+
+[MIT](LICENSE)
