@@ -136,7 +136,7 @@ pincenez [options] <checks.yaml> [output]
 
 ### Exit Codes
 
-Shared taxonomy across scuttlerun/pincenez/craboodle. Codes 3–7 are reserved for scuttlerun/craboodle concerns; pincenez emits only:
+Subset of the shared scuttlerun/pincenez/craboodle taxonomy — see [scuttlerun/README.md#exit-codes](https://github.com/bkudria/scuttlerun#exit-codes) for the canonical table. Source: [`src/exit-codes.ts`](src/exit-codes.ts).
 
 | Code | Meaning |
 |------|---------|
