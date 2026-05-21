@@ -6,7 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A TypeScript CLI that grades LLM outputs against YAML checks files using an LLM judge. Each check is evaluated independently in parallel by a separate LLM call (via `@anthropic-ai/claude-agent-sdk`), producing structured YAML results streamed to stdout.
 
-Extracted from the [skillcraft](~/.claude/skills/skillcraft/) eval framework to be a standalone, composable UNIX tool. Pairs with `scuttlerun` (headless session driver) in the eval pipeline.
+Extracted from the [skillcraft](~/.claude/skills/skillcraft/) eval framework to be a standalone, composable UNIX tool. Sits in the middle of a three-tool pipeline:
+
+- **[scuttlerun](https://github.com/bkudria/scuttlerun)** (upstream) drives a headless Claude session and emits the transcript pincenez grades.
+- **pincenez** grades any text against a checks file.
+- **[craboodle](https://github.com/bkudria/craboodle)** (typical orchestrator) invokes scuttlerun + pincenez across a directory of eval scenarios.
+
+Pincenez is intentionally usable standalone; the pipeline framing should not leak into the CLI surface or checks schema.
 
 ## Commands
 
