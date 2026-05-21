@@ -10,7 +10,8 @@ import { loadChecksFile } from './config.js';
 import { run } from './runner.js';
 import { runLint } from './lint-runner.js';
 import { getLintRulesText } from './lint-prompt.js';
-import { EXIT_CONFIG_ERROR, EXIT_RUNTIME_ERROR, EXIT_SIGINT } from './exit-codes.js';
+import { EXIT_CONFIG_ERROR, EXIT_SIGINT } from './exit-codes.js';
+import { formatCliError, cliExitCode } from './errors.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string };
@@ -138,12 +139,8 @@ export async function gradeAction(
       }
     }
   } catch (err) {
-    if (err instanceof Error && err.name === 'ZodError') {
-      process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
-      process.exit(EXIT_CONFIG_ERROR);
-    }
-    process.stderr.write(`[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`);
-    process.exit(EXIT_RUNTIME_ERROR);
+    process.stderr.write(formatCliError(err) + '\n');
+    process.exit(cliExitCode(err));
   }
 }
 
@@ -185,12 +182,8 @@ export async function lintAction(
       process.exit(EXIT_SIGINT);
     }
   } catch (err) {
-    if (err instanceof Error && err.name === 'ZodError') {
-      process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
-      process.exit(EXIT_CONFIG_ERROR);
-    }
-    process.stderr.write(`[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`);
-    process.exit(EXIT_RUNTIME_ERROR);
+    process.stderr.write(formatCliError(err) + '\n');
+    process.exit(cliExitCode(err));
   } finally {
     process.removeListener('SIGINT', sigintHandler);
   }
