@@ -1,4 +1,17 @@
+import { z } from 'zod';
 import type { SDKResultError } from '@anthropic-ai/claude-agent-sdk';
+import { EXIT_CONFIG_ERROR, EXIT_RUNTIME_ERROR } from './exit-codes.js';
+
+export function formatCliError(err: unknown): string {
+  if (err instanceof z.ZodError) {
+    return `[pincenez] Checks file error: ${err.message}`;
+  }
+  return `[pincenez] Error: ${err instanceof Error ? err.message : String(err)}`;
+}
+
+export function cliExitCode(err: unknown): number {
+  return err instanceof z.ZodError ? EXIT_CONFIG_ERROR : EXIT_RUNTIME_ERROR;
+}
 
 export function formatSdkError(
   err: Pick<SDKResultError, 'subtype' | 'errors' | 'terminal_reason' | 'permission_denials'>,

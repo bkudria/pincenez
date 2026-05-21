@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { z } from 'zod';
 import { Readable } from 'node:stream';
 import type { Command } from 'commander';
 
@@ -132,8 +133,9 @@ describe('gradeAction', () => {
   });
 
   it('exits with code 1 on ZodError', async () => {
-    const zodErr = Object.assign(new Error('bad schema'), { name: 'ZodError' });
-    mockLoad.mockRejectedValue(zodErr);
+    const result = z.string().safeParse(42);
+    if (result.success) throw new Error('expected ZodError');
+    mockLoad.mockRejectedValue(result.error);
     const program = makeProgramStub();
     await gradeAction('checks.yaml', 'out.md', {}, program);
     expect(exitSpy).toHaveBeenCalledWith(1);
@@ -243,8 +245,9 @@ describe('lintAction', () => {
   });
 
   it('exits with code 1 on ZodError', async () => {
-    const zodErr = Object.assign(new Error('bad schema'), { name: 'ZodError' });
-    mockLoad.mockRejectedValue(zodErr);
+    const result = z.string().safeParse(42);
+    if (result.success) throw new Error('expected ZodError');
+    mockLoad.mockRejectedValue(result.error);
     const lintCmd = makeProgramStub();
     await lintAction('checks.yaml', {}, lintCmd);
     expect(exitSpy).toHaveBeenCalledWith(1);

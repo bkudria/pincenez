@@ -3,7 +3,7 @@ import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '@anthropic-ai/claude-agen
 import type { SDKResultError } from '@anthropic-ai/claude-agent-sdk';
 import type { Check } from './config.js';
 import { buildGraderSystemPrompt, buildGraderUserPrompt } from './prompt.js';
-import { formatSdkError } from './sdk-error.js';
+import { formatSdkError } from './errors.js';
 
 const GRADER_SYSTEM_PROMPT = buildGraderSystemPrompt();
 
