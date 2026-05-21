@@ -10,6 +10,7 @@ import { loadChecksFile } from './config.js';
 import { run } from './runner.js';
 import { runLint } from './lint-runner.js';
 import { getLintRulesText } from './lint-prompt.js';
+import { EXIT_CONFIG_ERROR, EXIT_RUNTIME_ERROR, EXIT_SIGINT } from './exit-codes.js';
 
 const require = createRequire(import.meta.url);
 const pkg = require('../package.json') as { version: string };
@@ -99,7 +100,7 @@ export async function gradeAction(
         process.stderr.write(
           '[pincenez] Error: no output provided (pass a file or pipe to stdin)\n',
         );
-        process.exit(1);
+        process.exit(EXIT_CONFIG_ERROR);
       }
       tempFile = join(tmpdir(), `pincenez-stdin-${process.pid}-${Date.now()}`);
       await writeFile(tempFile, stdinContent, 'utf8');
@@ -128,7 +129,7 @@ export async function gradeAction(
       }
 
       if (controller.signal.aborted) {
-        process.exit(130);
+        process.exit(EXIT_SIGINT);
       }
     } finally {
       process.removeListener('SIGINT', sigintHandler);
@@ -139,10 +140,10 @@ export async function gradeAction(
   } catch (err) {
     if (err instanceof Error && err.name === 'ZodError') {
       process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
-      process.exit(1);
+      process.exit(EXIT_CONFIG_ERROR);
     }
     process.stderr.write(`[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`);
-    process.exit(2);
+    process.exit(EXIT_RUNTIME_ERROR);
   }
 }
 
@@ -181,15 +182,15 @@ export async function lintAction(
     }
 
     if (controller.signal.aborted) {
-      process.exit(130);
+      process.exit(EXIT_SIGINT);
     }
   } catch (err) {
     if (err instanceof Error && err.name === 'ZodError') {
       process.stderr.write(`[pincenez] Checks file error: ${err.message}\n`);
-      process.exit(1);
+      process.exit(EXIT_CONFIG_ERROR);
     }
     process.stderr.write(`[pincenez] Error: ${err instanceof Error ? err.message : String(err)}\n`);
-    process.exit(2);
+    process.exit(EXIT_RUNTIME_ERROR);
   } finally {
     process.removeListener('SIGINT', sigintHandler);
   }
