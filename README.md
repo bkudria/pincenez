@@ -27,7 +27,7 @@ scuttlerun and pincenez compose by pipe — `scuttlerun session.yaml | pincenez 
 
 ### Prerequisites
 
-- **Node.js 24** or newer.
+- **Node.js 20** or later (CI tests on 20, 22, 24).
 - **`ANTHROPIC_API_KEY`** exported in your environment. Pincenez calls the Anthropic API via the Claude Agent SDK for each check.
 
 ```bash
