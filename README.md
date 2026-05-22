@@ -9,7 +9,7 @@ A TypeScript CLI that grades LLM outputs against checks files using an LLM judge
 
 ![Demo: pincenez grading a TDD example transcript, streaming YAML verdicts to stdout](assets/demo.gif)
 
-*Checks run in parallel; each verdict streams to stdout as it completes, and the final `pass_rate` prints last.*
+_Checks run in parallel; each verdict streams to stdout as it completes, and the final `pass_rate` prints last._
 
 <!-- Source: assets/demo.tape — re-record with `vhs assets/demo.tape`. -->
 
@@ -72,25 +72,25 @@ context: |
 
 checks:
   - test-before-code:
-      check: "A test file was written before or alongside the production code"
-      note: "Look for Write tool calls — the test file should appear before the implementation file"
+      check: 'A test file was written before or alongside the production code'
+      note: 'Look for Write tool calls — the test file should appear before the implementation file'
   - function-exists:
-      check: "The requested function exists in the output file"
+      check: 'The requested function exists in the output file'
   - tests-validate:
       check: "At least one test case validates the function's behavior"
-      note: "The test should actually exercise the function, not just import it"
+      note: 'The test should actually exercise the function, not just import it'
       model: claude-sonnet-4-6
 ```
 
 ### Field Reference
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `context` | No | What task produced this output. Orients the judge without prescribing the answer. |
-| `checks` | Yes | List of binary checks to evaluate. |
-| `checks[].check` | Yes | The statement to evaluate. Phrased as an objective, verifiable claim. |
-| `checks[].note` | No | Grading hint for the judge. Improves human-judge alignment from ~70-80% to 93-96%. |
-| `checks[].model` | No | Model override for this check. Overrides `--model` and the default. |
+| Field            | Required | Description                                                                        |
+| ---------------- | -------- | ---------------------------------------------------------------------------------- |
+| `context`        | No       | What task produced this output. Orients the judge without prescribing the answer.  |
+| `checks`         | Yes      | List of binary checks to evaluate.                                                 |
+| `checks[].check` | Yes      | The statement to evaluate. Phrased as an objective, verifiable claim.              |
+| `checks[].note`  | No       | Grading hint for the judge. Improves human-judge alignment from ~70-80% to 93-96%. |
+| `checks[].model` | No       | Model override for this check. Overrides `--model` and the default.                |
 
 ## Output
 
@@ -99,11 +99,11 @@ Pincenez streams grading YAML to stdout as checks complete:
 ```yaml
 checks:
   - id: file-created
-    check: "A file named ocean.txt was created or written to"
+    check: 'A file named ocean.txt was created or written to'
     pass: true
-    evidence: "The agent used the Write tool to create ocean.txt with haiku content"
+    evidence: 'The agent used the Write tool to create ocean.txt with haiku content'
   - id: syllable-pattern
-    check: "Lines follow a 5-7-5 syllable pattern"
+    check: 'Lines follow a 5-7-5 syllable pattern'
     pass: false
     evidence: "Line 2 has 8 syllables: 'the waves are crashing on the shore'"
 pass_rate: 0.67
@@ -132,13 +132,13 @@ pincenez examples/haiku/checks.yaml examples/haiku/transcript.yaml
 pincenez [options] <checks.yaml> [output]
 ```
 
-| Option | Description |
-|--------|-------------|
-| `--model <model>` | LLM judge model (default: claude-haiku-4-5) |
+| Option             | Description                                            |
+| ------------------ | ------------------------------------------------------ |
+| `--model <model>`  | LLM judge model (default: claude-haiku-4-5)            |
 | `--context <text>` | Override or supplement the checks file's context field |
-| `--verbose` | Include verbose output on stderr |
-| `-V, --version` | Show version |
-| `-h, --help` | Show help with full checks file schema reference |
+| `--verbose`        | Include verbose output on stderr                       |
+| `-V, --version`    | Show version                                           |
+| `-h, --help`       | Show help with full checks file schema reference       |
 
 ### Lint
 
@@ -155,12 +155,12 @@ Detects 6 anti-patterns: vague, compound, tautological, always_passes, unverifia
 
 Subset of the shared scuttlerun/pincenez/craboodle taxonomy — see [scuttlerun/README.md#exit-codes](https://github.com/bkudria/scuttlerun#exit-codes) for the canonical table. Source: [`src/exit-codes.ts`](src/exit-codes.ts).
 
-| Code | Meaning |
-|------|---------|
-| 0 | Ran successfully (regardless of check results) |
-| 1 | Checks file error (invalid YAML, missing fields) |
-| 2 | Runtime error (SDK failure, API error, unhandled exception) |
-| 130 | Interrupted (SIGINT) |
+| Code | Meaning                                                     |
+| ---- | ----------------------------------------------------------- |
+| 0    | Ran successfully (regardless of check results)              |
+| 1    | Checks file error (invalid YAML, missing fields)            |
+| 2    | Runtime error (SDK failure, API error, unhandled exception) |
+| 130  | Interrupted (SIGINT)                                        |
 
 ## Composition
 

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Authoritative artifacts
 
-`GOALS.md`, `pincenez.allium`, the implementation in `src/`, and the tests in `tests/` are co-equal peer artifacts of the same system — design intent, behavioural contract, mechanism, and verification respectively. The four must reflect each other. Changing any one obliges checking and updating the others; conflicts between them are reconciled, not decided unilaterally. `pincenez.allium` is the authoritative source of behavioural truth; `GOALS.md` records *why* the project exists and the constraints behind its design.
+`GOALS.md`, `pincenez.allium`, the implementation in `src/`, and the tests in `tests/` are co-equal peer artifacts of the same system — design intent, behavioural contract, mechanism, and verification respectively. The four must reflect each other. Changing any one obliges checking and updating the others; conflicts between them are reconciled, not decided unilaterally. `pincenez.allium` is the authoritative source of behavioural truth; `GOALS.md` records _why_ the project exists and the constraints behind its design.
 
 ## What is Pincenez
 
