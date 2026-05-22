@@ -36,7 +36,9 @@
     "provenance": true
   },
   "scripts": {
-    "build": "tsc && chmod +x dist/cli.js",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && tsc && chmod +x dist/cli.js",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
