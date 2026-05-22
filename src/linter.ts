@@ -1,7 +1,7 @@
 import { query, SYSTEM_PROMPT_DYNAMIC_BOUNDARY } from '@anthropic-ai/claude-agent-sdk';
 import type { SDKResultError } from '@anthropic-ai/claude-agent-sdk';
 import type { Check } from './config.js';
-import { buildLintSystemPrompt, buildLintUserPrompt } from './lint-prompt.js';
+import { ANTI_PATTERNS, buildLintSystemPrompt, buildLintUserPrompt } from './lint-prompt.js';
 import { formatSdkError } from './errors.js';
 
 const LINT_SYSTEM_PROMPT = buildLintSystemPrompt();
@@ -30,14 +30,7 @@ const LINT_SCHEMA = {
         properties: {
           anti_pattern: {
             type: 'string' as const,
-            enum: [
-              'vague',
-              'compound',
-              'tautological',
-              'always_passes',
-              'unverifiable',
-              'over_specific',
-            ],
+            enum: ANTI_PATTERNS.map((ap) => ap.name),
           },
           suggestion: { type: 'string' as const },
         },

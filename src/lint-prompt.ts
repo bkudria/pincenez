@@ -7,7 +7,7 @@ interface AntiPattern {
   fix: string;
 }
 
-const ANTI_PATTERNS: AntiPattern[] = [
+export const ANTI_PATTERNS: AntiPattern[] = [
   {
     name: 'vague',
     description:
