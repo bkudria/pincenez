@@ -544,7 +544,8 @@ actor AnalystRuntime {
 -- Surfaces
 ------------------------------------------------------------
 
--- The grade subcommand: user invokes pincenez against a CheckSet and Output.
+-- The grade command (the unmarked default action; lint is the only named subcommand):
+-- user invokes pincenez against a CheckSet and Output.
 surface GradeCommand {
     facing user: CLIUser
 
