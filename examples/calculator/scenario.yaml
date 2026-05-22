@@ -1,4 +1,4 @@
-version: "1"
+version: '1'
 
 prompt: |
   Build a calculator module in TypeScript with add, subtract, multiply,

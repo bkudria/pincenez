@@ -20,16 +20,16 @@ conversation:
   - tool: AskUserQuestion
     input:
       questions:
-        - question: "What topic would you like the haiku to be about?"
+        - question: 'What topic would you like the haiku to be about?'
           options:
-            - label: "Nature"
-            - label: "Emotions"
-            - label: "Technology"
-            - label: "Other"
+            - label: 'Nature'
+            - label: 'Emotions'
+            - label: 'Technology'
+            - label: 'Other'
 
   - oracle: ask_user
     answers:
-      "What topic would you like the haiku to be about?": "Nature"
+      'What topic would you like the haiku to be about?': 'Nature'
     reasoning: |
       Selecting Nature as it's a classic and well-suited haiku topic.
 
