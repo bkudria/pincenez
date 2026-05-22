@@ -152,6 +152,24 @@ pincenez lint checks.yaml --context "The prompt that produced this output"
 
 Detects 6 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific. Accepts the same `--model`, `--context`, and `--concurrency` flags as grading; lint's default model is `claude-sonnet-4-6` (vs grading's `claude-haiku-4-5`).
 
+Output (streamed YAML, arrival order):
+
+```yaml
+checks:
+  - id: file-created
+    check: 'A file named ocean.txt was created or written to'
+    issues: []
+  - id: syllable-pattern
+    check: 'Lines follow a 5-7-5 syllable pattern'
+    issues:
+      - anti_pattern: vague
+        suggestion: "Replace 'roughly' with a numeric tolerance, e.g. '±1 syllable'"
+checks_total: 2
+checks_with_issues: 1
+```
+
+`checks_total` and `checks_with_issues` are written after all checks settle; `cost_usd` is appended when > 0. Like grade, `lint` exits 0 on completion regardless of `checks_with_issues` — downstream consumers parse the YAML to detect issue presence.
+
 ## Exit Codes
 
 Subset of the shared scuttlerun/pincenez/craboodle taxonomy — see [scuttlerun/README.md#exit-codes](https://github.com/bkudria/scuttlerun#exit-codes) for the canonical table. Source: [`src/exit-codes.ts`](src/exit-codes.ts).
@@ -162,6 +180,8 @@ Subset of the shared scuttlerun/pincenez/craboodle taxonomy — see [scuttlerun/
 | 1    | Checks file error (invalid YAML, missing fields)            |
 | 2    | Runtime error (SDK failure, API error, unhandled exception) |
 | 130  | Interrupted (SIGINT)                                        |
+
+`lint` follows the same taxonomy and does not signal issue presence through its exit code: a clean run is 0 whether or not any checks have issues. Detect issues by parsing the `checks_with_issues` summary field.
 
 ## Composition
 
