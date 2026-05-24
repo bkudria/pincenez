@@ -34,6 +34,17 @@ describe('buildGraderSystemPrompt', () => {
     expect(sys).not.toContain('**Check:**');
     expect(sys).not.toContain('/tmp/');
   });
+
+  it('tells the grader that plugin-component tool calls in transcripts are observable', () => {
+    const sys = buildGraderSystemPrompt();
+    expect(sys).toContain('tool: Skill');
+    expect(sys).toContain('tool: Agent');
+    expect(sys).toContain('mcp__');
+    const awarenessIndex = sys.indexOf('## Transcript Awareness');
+    const skillIndex = sys.indexOf('tool: Skill');
+    expect(awarenessIndex).toBeGreaterThan(-1);
+    expect(skillIndex).toBeGreaterThan(awarenessIndex);
+  });
 });
 
 describe('buildGraderUserPrompt', () => {
