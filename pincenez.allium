@@ -129,6 +129,28 @@ contract Judge {
         -- a grader, a user prompt containing the Check's check text,
         -- optional note, the run's effective context, and the output
         -- path. The model parameter is a Claude model identifier.
+
+    @guidance
+        -- The judge is oriented to scuttlerun-style YAML transcripts:
+        -- a 'conversation:' sequence of typed entries (- user:,
+        -- - assistant:, - thinking:, - tool: <Name>, - oracle:).
+        -- Plugin-component invocations appear as literal tool-call
+        -- entries in that YAML and count as observable evidence the
+        -- same as any other quoted output, not as references to hidden
+        -- internal state:
+        --   - tool: Skill with input.skill = <id> indicates the skill
+        --     was loaded.
+        --   - tool: Agent with input.subagent_type = <id> indicates the
+        --     sub-agent was dispatched.
+        --   - tool: mcp__<server>__<tool> indicates the MCP tool was
+        --     called.
+        -- Slash-command invocations are not separate transcript entries;
+        -- they appear as the prefix of the first user: message. Hooks
+        -- do not appear as transcript entries at all and are observable
+        -- only via their side effects (file mutations, blocked tool
+        -- calls, hook stdout). This complements the unverifiable enum
+        -- comment below: what is observable to the analyst is also
+        -- observable to the judge.
 }
 
 -- The analyst LLM consulted to lint Checks for anti-patterns.
