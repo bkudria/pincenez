@@ -177,7 +177,9 @@ enum AntiPattern {
   | compound                     -- multiple independent claims in one check
   | tautological                 -- restates the prompt without specificity
   | always_passes                -- tests baseline LLM behaviour
-  | unverifiable                 -- references internal state, not output
+  | unverifiable                 -- references internal state, not output;
+                                 -- transcript tool-call entries like
+                                 -- tool: Skill / Agent / mcp__* count as output
   | over_specific                -- prescribes one means when alternatives exist
   | error                        -- analyst itself errored on this check
 }

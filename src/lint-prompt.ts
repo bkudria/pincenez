@@ -105,6 +105,9 @@ export function buildLintSystemPrompt(): string {
   parts.push(
     `- For over_specific, do NOT flag checks where the alternative approach would be a security vulnerability, a correctness violation, or a contract breach — not just a stylistic preference. A check like "uses approach X, not approach Y" is legitimately specific ONLY when Y would produce an objectively wrong outcome (e.g. a known vulnerability class, a protocol violation, or a silently-wrong computation). Only flag when multiple valid approaches exist and the check mandates one for non-correctness reasons.`,
   );
+  parts.push(
+    `- For unverifiable, treat literal tool-call entries in transcripts as observable output, not as references to internal machinery. Plugin-component tool calls — \`tool: Skill\` (input: \`{skill: ...}\`), \`tool: Agent\` (input: \`{subagent_type: ..., prompt: ...}\`), and \`tool: mcp__<server>__<tool>\` — appear verbatim in the YAML transcript the grader reads. A check like "the skill \`foo\` was loaded" or "the Agent tool was dispatched with subagent_type plugin-validator" or "mcp__github__create_issue was called" is verifiable from the transcript and must NOT be flagged as unverifiable. Hooks and slash commands are NOT directly surfaced in the transcript today; checks asserting on them are correctly flagged unless they reference an observable side-effect (e.g. a hook's stdout string).`,
+  );
 
   return parts.join('\n');
 }
@@ -153,6 +156,9 @@ export function getLintRulesText(): string {
   lines.push(`  - Name specific elements, not vague qualities`);
   lines.push(`  - Test what the config adds, not baseline LLM behavior`);
   lines.push(`  - Assert observable output, not internal reasoning`);
+  lines.push(
+    `  - Plugin-component tool calls (\`tool: Skill\`, \`tool: Agent\`, \`tool: mcp__<server>__<tool>\`) in the transcript ARE observable output`,
+  );
   lines.push(`  - Add a note: field to orient the grader toward the right evidence`);
 
   return lines.join('\n');
