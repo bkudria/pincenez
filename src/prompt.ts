@@ -50,5 +50,7 @@ export function buildGraderSystemPrompt(): string {
     `  - \`tool: Agent\` with \`input: { subagent_type: <id>, prompt: ..., ... }\` indicates the sub-agent \`<id>\` was dispatched.`,
     `  - \`tool: mcp__<server>__<tool>\` indicates the MCP tool \`<tool>\` on server \`<server>\` was called.`,
     `- Checks like "the \`X\` skill was loaded", "the Agent tool was dispatched with subagent_type \`Y\`", or "\`mcp__github__create_issue\` was called" are verifiable from the transcript. Search for the corresponding tool-call entry; cite it as evidence.`,
+    `- Slash-command invocations (e.g. \`/triage assess\`) are NOT separate transcript entries; the slash command appears as the prefix of the first \`user:\` message. A check like "the user invoked \`/foo\`" is verifiable by inspecting the first user message.`,
+    `- Hooks do NOT appear as transcript entries at all; they are observable only via their side effects: file mutations, blocked or absent tool calls, hook stdout strings surfaced elsewhere. A check on hook behavior must look for the side effect, not a \`tool: hook\` entry. If the only available evidence is "the hook ran", and no side effect is captured, the check is not verifiable from the transcript and should fail with that explanation.`,
   ].join('\n');
 }

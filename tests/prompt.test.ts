@@ -45,6 +45,19 @@ describe('buildGraderSystemPrompt', () => {
     expect(awarenessIndex).toBeGreaterThan(-1);
     expect(skillIndex).toBeGreaterThan(awarenessIndex);
   });
+
+  it('tells the grader where slash commands and hooks appear (or do not appear) in transcripts', () => {
+    const sys = buildGraderSystemPrompt();
+    expect(sys).toContain('slash');
+    expect(sys).toMatch(/hook/i);
+    expect(sys).toMatch(/side effect|side-effect/i);
+    const awarenessIndex = sys.indexOf('## Transcript Awareness');
+    const slashIndex = sys.search(/slash/i);
+    const hookIndex = sys.search(/hook/i);
+    expect(awarenessIndex).toBeGreaterThan(-1);
+    expect(slashIndex).toBeGreaterThan(awarenessIndex);
+    expect(hookIndex).toBeGreaterThan(awarenessIndex);
+  });
 });
 
 describe('buildGraderUserPrompt', () => {
