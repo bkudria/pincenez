@@ -47,6 +47,20 @@ describe('buildLintSystemPrompt', () => {
     expect(sys).not.toContain('**Check:**');
     expect(sys).not.toContain('## Scenario Context');
   });
+
+  it('tells the analyst that plugin-component tool calls in transcripts are observable', () => {
+    const sys = buildLintSystemPrompt();
+    // The guidance must name the three transcript-visible plugin-component tool
+    // forms so the analyst does not flag checks asserting on them as unverifiable.
+    expect(sys).toContain('tool: Skill');
+    expect(sys).toContain('tool: Agent');
+    expect(sys).toContain('mcp__');
+    // The clause must be scoped to unverifiable, not a stray mention elsewhere.
+    const unverifiableIndex = sys.indexOf('For unverifiable');
+    const skillIndex = sys.indexOf('tool: Skill');
+    expect(unverifiableIndex).toBeGreaterThan(-1);
+    expect(skillIndex).toBeGreaterThan(unverifiableIndex);
+  });
 });
 
 describe('buildLintUserPrompt', () => {
@@ -133,6 +147,16 @@ describe('getLintRulesText', () => {
     const rules = getLintRulesText();
     expect(rules).not.toContain('## Check to Analyze');
     expect(rules).not.toContain('**Check:**');
+  });
+
+  it('notes plugin-component tool calls as observable transcript signals', () => {
+    const rules = getLintRulesText();
+    // The "Writing Good Checks" section must mention that transcript tool-call
+    // entries for plugin components count as observable output.
+    expect(rules).toContain('Writing Good Checks');
+    expect(rules).toContain('tool: Skill');
+    expect(rules).toContain('tool: Agent');
+    expect(rules).toContain('mcp__');
   });
 
   it('stays in sync with buildLintSystemPrompt anti-patterns', () => {
