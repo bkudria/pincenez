@@ -1,10 +1,18 @@
 import type { Check } from './config.js';
 
+interface Slip {
+  name: string;
+  signal: string;
+  example: string;
+  fix: string;
+}
+
 interface AntiPattern {
   name: string;
   description: string;
   example: string;
   fix: string;
+  slips?: Slip[];
 }
 
 export const ANTI_PATTERNS: AntiPattern[] = [
@@ -14,6 +22,15 @@ export const ANTI_PATTERNS: AntiPattern[] = [
       'Different graders would disagree on pass/fail. Uses subjective terms like "high quality", "correct", "proper", "good", "best practices", "well-structured" without specifying what concretely to check.',
     example: '"Output is high quality" → should name the specific quality metric.',
     fix: '"Output contains a markdown table with at least 3 rows and a header row"',
+    slips: [
+      {
+        name: 'Abstract-noun stand-ins',
+        signal:
+          'Nouns like "investigation", "presentation", "review", "consideration" sound concrete but need a grader to infer what counts.',
+        example: '"investigation before presentation"',
+        fix: 'Replace with the observable behaviour: "at least one Read/Grep/Bash call against the file before writing findings".',
+      },
+    ],
   },
   {
     name: 'compound',
@@ -21,6 +38,30 @@ export const ANTI_PATTERNS: AntiPattern[] = [
       'Tests two or more independent things in one check. Contains "AND", "and also", "as well as", or tests multiple distinct behaviors. Each should be its own check.',
     example: '"Code uses correct syntax AND includes error handling" → split into two checks.',
     fix: '(1) "Response body is valid JSON" (2) "Response includes a \\"next_cursor\\" field for pagination"',
+    slips: [
+      {
+        name: 'Likewise-joined intervals',
+        signal:
+          '"likewise" or "also" join two independent claims even when the usual "and"/"both" signals are absent.',
+        example:
+          '"Between the edits to A and B there is an AskUserQuestion; likewise between B and C"',
+        fix: 'Split into two checks: one per interval.',
+      },
+      {
+        name: 'Before/after-clause embedding',
+        signal:
+          'A temporal "before X" or "after X" clause quietly adds a second claim (the ordering itself).',
+        example: '"The agent asks about item 2 before making any edit to hello.py"',
+        fix: 'Split: (1) "asks about item 2"; (2) "the ask precedes any edit to hello.py".',
+      },
+      {
+        name: 'Capitalized AND after a fix',
+        signal:
+          'Re-authoring (rewriting) a compound check often introduces a second AND in the rewrite — apply the enumeration test to the rewrite, not just the original.',
+        example: '"...makes an investigative tool call AND asks a separate AskUserQuestion"',
+        fix: 'Re-author once more so the rewrite itself contains only one independent claim.',
+      },
+    ],
   },
   {
     name: 'tautological',
@@ -49,6 +90,16 @@ export const ANTI_PATTERNS: AntiPattern[] = [
       'Prescribes a single implementation means when the intent is about the outcome. Names a specific function, operator, or tool as THE required approach when multiple valid alternatives exist. Signals: "uses [specific function]" as a requirement, "not [alternative]" framing that assumes only one alternative.',
     example: '"Uses eval-all for multi-file merge" — load() with glob also works.',
     fix: '"Produces a merged YAML document combining arrays from both input files"',
+    slips: [
+      {
+        name: 'Enumerated list as requirement',
+        signal:
+          'A short list of specific tools, files, or syntaxes looks concrete but disallows equivalent alternatives — lint treats "X or Y" as "only X or Y" when an outcome-equivalent Z exists. Ask: would an enumerated alternative satisfy the intent? If yes, rewrite the outcome and keep the list as non-exhaustive examples.',
+        example:
+          '"Read or Grep tool call targeting notes.md" (misses cat/head/Bash); "pyproject.toml, setup.py, setup.cfg, or requirements.txt" (misses package.json, Cargo.toml, go.mod).',
+        fix: '"any file-reading tool call against notes.md" (e.g., Read, Grep, or Bash cat); "a project-manifest file".',
+      },
+    ],
   },
 ];
 
@@ -81,6 +132,14 @@ export function buildLintSystemPrompt(): string {
     parts.push(`${i + 1}. **${ap.name}** — ${ap.description}`);
     parts.push(`   Bad:   ${ap.example}`);
     parts.push(`   Fixed: ${ap.fix}`);
+    if (ap.slips && ap.slips.length > 0) {
+      parts.push(`   Common Slips (sub-patterns of ${ap.name}):`);
+      ap.slips.forEach((slip) => {
+        parts.push(`     - ${slip.name} — ${slip.signal}`);
+        parts.push(`       Bad:   ${slip.example}`);
+        parts.push(`       Fixed: ${slip.fix}`);
+      });
+    }
     parts.push(``);
   });
 
@@ -148,6 +207,14 @@ export function getLintRulesText(): string {
     lines.push(`    ${ap.description}`);
     lines.push(`    Bad:   ${ap.example}`);
     lines.push(`    Fixed: ${ap.fix}`);
+    if (ap.slips && ap.slips.length > 0) {
+      lines.push(`    Common Slips (sub-patterns of ${ap.name}):`);
+      for (const slip of ap.slips) {
+        lines.push(`      - ${slip.name} — ${slip.signal}`);
+        lines.push(`        Bad:   ${slip.example}`);
+        lines.push(`        Fixed: ${slip.fix}`);
+      }
+    }
     lines.push(``);
   }
 

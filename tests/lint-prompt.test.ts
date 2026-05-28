@@ -176,3 +176,71 @@ describe('getLintRulesText', () => {
     }
   });
 });
+
+/**
+ * Common Slips coverage.
+ *
+ * Source of truth: cc-plugins/.../claude-code-evals/references/check-design.md
+ * § Common Slips. Five patterns that look like single checks but fail lint as
+ * compound or vague. Each must surface in the lint prompt (system prompt + --help)
+ * under the parent category it maps to:
+ *   Likewise-joined intervals     -> compound
+ *   Before/after-clause embedding -> compound
+ *   Capitalized "AND" after a fix -> compound
+ *   Abstract-noun stand-ins       -> vague
+ *   Enumerated list as requirement -> over_specific
+ */
+describe('buildLintSystemPrompt — Common Slips coverage', () => {
+  function sectionBetween(prompt: string, startMarker: string, endMarker: string): string {
+    const s = prompt.indexOf(startMarker);
+    if (s < 0) return '';
+    const e = prompt.indexOf(endMarker, s);
+    return prompt.slice(s, e > s ? e : undefined);
+  }
+
+  const prompt = buildLintSystemPrompt();
+  const compoundSection = sectionBetween(prompt, '**compound**', '**tautological**');
+  const vagueSection = sectionBetween(prompt, '**vague**', '**compound**');
+  const overSpecificSection = sectionBetween(prompt, '**over_specific**', '## Rules');
+
+  it('compound section primes Likewise-joined intervals (likewise)', () => {
+    expect(compoundSection.toLowerCase()).toContain('likewise');
+  });
+
+  it('compound section primes Before/after-clause embedding', () => {
+    expect(compoundSection.toLowerCase()).toContain('before');
+    expect(compoundSection.toLowerCase()).toContain('after');
+  });
+
+  it('compound section primes Capitalized AND after a fix (re-author/rewrite)', () => {
+    expect(compoundSection.toLowerCase()).toMatch(/\b(re-author|rewrite)\b/);
+  });
+
+  it('vague section names abstract-noun stand-ins by example', () => {
+    const examples = ['investigation', 'presentation', 'review', 'consideration'];
+    const matches = examples.filter((ex) => vagueSection.toLowerCase().includes(ex));
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('over_specific section names enumerated-list-as-requirement slip', () => {
+    expect(overSpecificSection.toLowerCase()).toContain('enumerated');
+  });
+});
+
+describe('getLintRulesText — Common Slips coverage mirrors system prompt', () => {
+  const help = getLintRulesText().toLowerCase();
+
+  it('--help mentions likewise under compound', () => {
+    expect(help).toContain('likewise');
+  });
+
+  it('--help mentions abstract-noun examples under vague', () => {
+    const examples = ['investigation', 'presentation', 'review', 'consideration'];
+    const matches = examples.filter((ex) => help.includes(ex));
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('--help mentions enumerated-list-as-requirement under over_specific', () => {
+    expect(help).toContain('enumerated');
+  });
+});
