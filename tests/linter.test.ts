@@ -185,7 +185,7 @@ describe('lintCheck', () => {
     );
   });
 
-  it('constrains anti_pattern in JSON schema to the six AntiPattern literals', async () => {
+  it('constrains anti_pattern in JSON schema to the seven AntiPattern literals', async () => {
     mockQuery.mockReturnValue(asyncMessages([resultMessage('{"issues": []}')]));
 
     await lintCheck(testCheck);
@@ -211,6 +211,7 @@ describe('lintCheck', () => {
       'always_passes',
       'unverifiable',
       'over_specific',
+      'unfalsifiable',
     ]);
   });
 

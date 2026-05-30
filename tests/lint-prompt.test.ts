@@ -24,7 +24,7 @@ describe('buildLintSystemPrompt', () => {
     expect(sys).toContain('**mixed**');
   });
 
-  it('includes all six anti-pattern definitions', () => {
+  it('includes all seven anti-pattern definitions', () => {
     const sys = buildLintSystemPrompt();
     expect(sys).toContain('**vague**');
     expect(sys).toContain('**compound**');
@@ -32,13 +32,16 @@ describe('buildLintSystemPrompt', () => {
     expect(sys).toContain('**always_passes**');
     expect(sys).toContain('**unverifiable**');
     expect(sys).toContain('**over_specific**');
+    expect(sys).toContain('**unfalsifiable**');
   });
 
-  it('includes the Rules section with self-consistency and over_specific guard', () => {
+  it('includes the Rules section with self-consistency, over_specific, and unfalsifiable guards', () => {
     const sys = buildLintSystemPrompt();
     expect(sys).toContain('## Rules');
     expect(sys).toContain('suggestions must not introduce other anti-patterns');
     expect(sys).toContain('legitimately specific');
+    expect(sys).toContain('For unfalsifiable');
+    expect(sys).toContain('passes vacuously');
   });
 
   it('does not contain dynamic per-check content', () => {
@@ -102,7 +105,7 @@ describe('buildLintUserPrompt', () => {
 });
 
 describe('getLintRulesText', () => {
-  it('contains all six anti-pattern names', () => {
+  it('contains all seven anti-pattern names', () => {
     const rules = getLintRulesText();
     expect(rules).toContain('vague');
     expect(rules).toContain('compound');
@@ -110,6 +113,7 @@ describe('getLintRulesText', () => {
     expect(rules).toContain('always_passes');
     expect(rules).toContain('unverifiable');
     expect(rules).toContain('over_specific');
+    expect(rules).toContain('unfalsifiable');
   });
 
   it('contains descriptions and examples for each anti-pattern', () => {
@@ -162,7 +166,7 @@ describe('getLintRulesText', () => {
   it('stays in sync with buildLintSystemPrompt anti-patterns', () => {
     const rules = getLintRulesText();
     const prompt = buildLintSystemPrompt();
-    // Both should reference the same 6 anti-patterns
+    // Both should reference the same 7 anti-patterns
     for (const name of [
       'vague',
       'compound',
@@ -170,6 +174,7 @@ describe('getLintRulesText', () => {
       'always_passes',
       'unverifiable',
       'over_specific',
+      'unfalsifiable',
     ]) {
       expect(rules).toContain(name);
       expect(prompt).toContain(name);
