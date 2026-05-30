@@ -203,6 +203,8 @@ enum AntiPattern {
                                  -- transcript tool-call entries like
                                  -- tool: Skill / Agent / mcp__* count as output
   | over_specific                -- prescribes one means when alternatives exist
+  | unfalsifiable                -- structurally cannot fail (e.g. a vacuous
+                                 -- negative-universal whose subject may be absent)
   | error                        -- analyst itself errored on this check
 }
 

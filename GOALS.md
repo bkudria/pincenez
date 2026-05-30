@@ -45,5 +45,5 @@ Each tool owns one step of the pipeline. They compose via files and stdout.
 
 - **Form factor**: TypeScript CLI (matches scuttlerun). Published via `bin` entry in package.json.
 - **Grader prompt**: Built-in default in `prompt.ts`. No shipped file — keeps the tool self-contained.
-- **Feature scope**: Check linting (`pincenez lint`) implemented for 6 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific. Discrimination classification stays out of scope.
+- **Feature scope**: Check linting (`pincenez lint`) implemented for 7 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific, unfalsifiable. Objective falsifiability detection (can a check ever fail?) is in scope; subjective discrimination scoring stays out.
 - **Input format**: Plain text only. Reads any file or stdin. No scuttlerun-specific parsing.

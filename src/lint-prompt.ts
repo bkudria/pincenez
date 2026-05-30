@@ -73,7 +73,7 @@ export const ANTI_PATTERNS: AntiPattern[] = [
   {
     name: 'always_passes',
     description:
-      "Tests baseline LLM behavior that would happen without any special skill/config. If Claude would naturally do this without guidance, the check isn't testing anything meaningful.",
+      "Tests baseline LLM behavior that would happen without any special skill/config. If Claude would naturally do this without guidance, the check isn't testing anything meaningful. (Contrast unfalsifiable: a check that structurally cannot fail, rather than one the model satisfies by default.)",
     example: '"Output is written in English" or "Output contains code" for a coding task.',
     fix: '"Output uses the test-first pattern taught in the skill\'s TDD reference (not a generic `it.todo`)"',
   },
@@ -100,6 +100,14 @@ export const ANTI_PATTERNS: AntiPattern[] = [
         fix: '"any file-reading tool call against notes.md" (e.g., Read, Grep, or Bash cat); "a project-manifest file".',
       },
     ],
+  },
+  {
+    name: 'unfalsifiable',
+    description:
+      'A check that no realistic transcript can fail — it passes whether or not the agent did the right thing, so it cannot discriminate pass from fail. The common form is a negative-universal ("no X without a preceding Y") that passes vacuously when there is simply no X. Contrast always_passes, which flags checks for baseline behaviour the model does anyway: always_passes is practically always true, while unfalsifiable is structurally unable to fail.',
+    example:
+      '"No database write occurs without a prior validation step" — passes vacuously in any run that never writes to the database.',
+    fix: '(1) "A database write occurs" (2) "No database write occurs without a prior validation step"',
   },
 ];
 
@@ -166,6 +174,9 @@ export function buildLintSystemPrompt(): string {
   );
   parts.push(
     `- For unverifiable, treat literal tool-call entries in transcripts as observable output, not as references to internal machinery. Plugin-component tool calls — \`tool: Skill\` (input: \`{skill: ...}\`), \`tool: Agent\` (input: \`{subagent_type: ..., prompt: ...}\`), and \`tool: mcp__<server>__<tool>\` — appear verbatim in the YAML transcript the grader reads. A check like "the skill \`foo\` was loaded" or "the Agent tool was dispatched with subagent_type plugin-validator" or "mcp__github__create_issue was called" is verifiable from the transcript and must NOT be flagged as unverifiable. Hooks and slash commands are NOT directly surfaced in the transcript today; checks asserting on them are correctly flagged unless they reference an observable side-effect (e.g. a hook's stdout string).`,
+  );
+  parts.push(
+    `- For unfalsifiable, ask whether ANY realistic transcript would make the check FAIL. Only flag when the check passes on essentially all plausible transcripts — most often a negative-universal whose subject ("X" in "no X without Y") may simply be absent, so it passes vacuously. Do NOT flag a negative check that can fail on a realistic transcript (e.g. "no Edit to config.py appears" when editing config.py is a plausible mistake).`,
   );
 
   return parts.join('\n');
