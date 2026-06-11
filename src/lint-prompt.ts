@@ -1,4 +1,5 @@
 import type { Check } from './config.js';
+import { buildTranscriptFieldContractSection } from './prompt.js';
 
 interface Slip {
   name: string;
@@ -151,6 +152,8 @@ export function buildLintSystemPrompt(): string {
     parts.push(``);
   });
 
+  parts.push(buildTranscriptFieldContractSection());
+  parts.push(``);
   parts.push(`## Rules`);
   parts.push(``);
   parts.push(
@@ -176,13 +179,23 @@ export function buildLintSystemPrompt(): string {
     `- For unverifiable, treat literal tool-call entries in transcripts as observable output, not as references to internal machinery. Plugin-component tool calls — \`tool: Skill\` (input: \`{skill: ...}\`), \`tool: Agent\` (input: \`{subagent_type: ..., prompt: ...}\`), and \`tool: mcp__<server>__<tool>\` — appear verbatim in the YAML transcript the grader reads. A check like "the skill \`foo\` was loaded" or "the Agent tool was dispatched with subagent_type plugin-validator" or "mcp__github__create_issue was called" is verifiable from the transcript and must NOT be flagged as unverifiable. Hooks and slash commands are NOT directly surfaced in the transcript today; checks asserting on them are correctly flagged unless they reference an observable side-effect (e.g. a hook's stdout string).`,
   );
   parts.push(
+    `- Never suggest a rewrite that asserts on fields the transcript drops (per the Transcript Field Contract above, e.g. the content written by Write/Edit) — such a check is ungradeable from the transcript. A check that already depends on dropped fields warrants unverifiable; suggest a rewrite that targets a recorded field (e.g. the path) or another observable evidence source instead.`,
+  );
+  parts.push(
+    `- When the user message includes a "Session Tool Configuration" list, treat it as the authoritative list of tools available in the session under test — custom and MCP tools may be provisioned beyond the defaults. Do NOT flag a check on tool-availability grounds when the tool it names is listed, and do NOT speculate from general knowledge about which tools are or are not available. Without the list, make no claims about tool availability.`,
+  );
+  parts.push(
     `- For unfalsifiable, ask whether ANY realistic transcript would make the check FAIL. Only flag when the check passes on essentially all plausible transcripts — most often a negative-universal whose subject ("X" in "no X without Y") may simply be absent, so it passes vacuously. Do NOT flag a negative check that can fail on a realistic transcript (e.g. "no Edit to config.py appears" when editing config.py is a plausible mistake).`,
   );
 
   return parts.join('\n');
 }
 
-export function buildLintUserPrompt(check: Check, context?: string): string {
+export function buildLintUserPrompt(
+  check: Check,
+  context?: string,
+  availableTools?: string[],
+): string {
   const parts: string[] = [];
 
   parts.push(`## Check to Analyze`);
@@ -198,6 +211,14 @@ export function buildLintUserPrompt(check: Check, context?: string): string {
     parts.push(``);
     parts.push(`The scenario prompt (for detecting tautological checks):`);
     parts.push(context.trim());
+  }
+
+  if (availableTools && availableTools.length > 0) {
+    parts.push(``);
+    parts.push(`## Session Tool Configuration`);
+    parts.push(``);
+    parts.push(`Tools available in the session under test:`);
+    parts.push(availableTools.map((t) => `- ${t}`).join('\n'));
   }
 
   return parts.join('\n');

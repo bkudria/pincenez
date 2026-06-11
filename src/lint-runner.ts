@@ -7,6 +7,7 @@ import { LINE_WIDTH, writeYamlArrayItem } from './yaml-utils.js';
 export interface LintRunOptions {
   model?: string;
   context?: string;
+  availableTools?: string[];
   controller?: AbortController;
   concurrency?: number;
 }
@@ -35,6 +36,7 @@ export async function runLint(
       lintCheck(check, {
         model: options.model,
         context,
+        availableTools: options.availableTools,
         controller: options.controller,
       }).then((result) => {
         results.push(result);

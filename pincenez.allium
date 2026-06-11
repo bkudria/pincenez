@@ -151,6 +151,21 @@ contract Judge {
         -- calls, hook stdout). This complements the unverifiable enum
         -- comment below: what is observable to the analyst is also
         -- observable to the judge.
+
+    @guidance
+        -- The judge is oriented to the transcript field contract:
+        -- scuttlerun YAML transcripts record tool calls lossily, keeping
+        -- only a small set of identifying fields per known tool (e.g.
+        -- path for Read/Write/Edit, command for Bash, pattern for
+        -- Glob/Grep) and dropping content-bearing fields (content,
+        -- old_string, new_string) before serialization; unknown tools
+        -- keep their full input verbatim. A check asserting on written
+        -- content cannot be verified from the transcript alone — absent
+        -- another evidence source, the judge fails it explaining the
+        -- transcript records only the path by design. This orientation
+        -- mirrors scuttlerun.allium's @guarantee
+        -- TranscriptToolFieldContract and must be updated in lockstep
+        -- when that contract changes.
 }
 
 -- The analyst LLM consulted to lint Checks for anti-patterns.
@@ -158,7 +173,8 @@ contract LintAnalyst {
     analyse: (
         check: Check,
         model: String,
-        context: String?
+        context: String?,
+        available_tools: List<String>?
     ) -> LintResponse
 
     @invariant Independence
@@ -180,6 +196,25 @@ contract LintAnalyst {
         -- The tautological category compares the Check against the
         -- scenario context. Without context, the analyst skips this
         -- category rather than guessing.
+
+    @invariant ToolAvailabilityGrounding
+        -- When available_tools is provided, it is the authoritative
+        -- list of tools available in the session under test — custom
+        -- and MCP tools may be provisioned beyond any default set. A
+        -- Check naming a listed tool is never flagged on availability
+        -- grounds, and the analyst does not speculate from general
+        -- knowledge about which tools exist. Without the list, the
+        -- analyst makes no claims about tool availability.
+
+    @invariant NoUngradeableSuggestions
+        -- A suggested rewrite must be gradeable from the evidence the
+        -- transcript records. The analyst is oriented to the transcript
+        -- field contract (see Judge guidance; mirrors scuttlerun.allium's
+        -- @guarantee TranscriptToolFieldContract) and never suggests
+        -- asserting on dropped fields (e.g. content written by
+        -- Write/Edit). A Check that already depends on dropped fields
+        -- warrants unverifiable, with a suggestion targeting a recorded
+        -- field or another observable evidence source.
 }
 
 ------------------------------------------------------------
@@ -278,6 +313,7 @@ entity LintRun {
     checkset: CheckSet
     analyst_default_model: String
     effective_context: String?
+    available_tools: List<String>?
     started_at: Timestamp
 
     status: in_progress | complete | aborted
@@ -439,6 +475,7 @@ rule StartLintRun {
         checkset,
         model_flag?,
         context_flag?,
+        available_tools_flag?,
         verbose_flag?
     )
 
@@ -452,6 +489,7 @@ rule StartLintRun {
         checkset: checkset,
         analyst_default_model: model_flag ?? config.default_lint_model,
         effective_context: context_flag ?? checkset.context,
+        available_tools: available_tools_flag,
         started_at: now,
         status: in_progress
     )
@@ -468,16 +506,17 @@ rule SchedulePerCheckLint {
             run: run,
             check: check,
             model: run.analyst_default_model,
-            context: run.effective_context
+            context: run.effective_context,
+            available_tools: run.available_tools
         )
 }
 
 rule LintCheck {
-    when: CheckLintRequested(run, check, model, context?)
+    when: CheckLintRequested(run, check, model, context?, available_tools?)
 
     requires: run.status = in_progress
 
-    let response = analyse(check, model, context)
+    let response = analyse(check, model, context, available_tools)
 
     ensures: LintResult.created(
         run: run,
@@ -648,7 +687,7 @@ surface LintCommand {
                 r.issues
 
     provides:
-        LintRequested(user, checkset, model_flag?, context_flag?, verbose_flag?)
+        LintRequested(user, checkset, model_flag?, context_flag?, available_tools_flag?, verbose_flag?)
         for run in LintRuns where status = in_progress:
             AbortLintRequested(run)
 

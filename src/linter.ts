@@ -69,11 +69,12 @@ export async function lintCheck(
   options: {
     model?: string;
     context?: string;
+    availableTools?: string[];
     controller?: AbortController;
   } = {},
 ): Promise<LintResult> {
   const model = options.model ?? DEFAULT_MODEL;
-  const prompt = buildLintUserPrompt(check, options.context);
+  const prompt = buildLintUserPrompt(check, options.context, options.availableTools);
 
   try {
     let resultText = '';
