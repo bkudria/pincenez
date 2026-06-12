@@ -132,14 +132,14 @@ pincenez examples/haiku/checks.yaml examples/haiku/transcript.yaml
 pincenez [options] <checks.yaml> [output]
 ```
 
-| Option              | Description                                            |
-| ------------------- | ------------------------------------------------------ |
-| `--model <model>`   | LLM judge model (default: claude-haiku-4-5)            |
-| `--context <text>`  | Override or supplement the checks file's context field |
-| `--concurrency <n>` | Max parallel checks (default: 10)                      |
-| `--verbose`         | Include verbose output on stderr                       |
-| `-V, --version`     | Show version                                           |
-| `-h, --help`        | Show help with full checks file schema reference       |
+| Option              | Description                                                     |
+| ------------------- | --------------------------------------------------------------- |
+| `--model <model>`   | LLM judge model (default: claude-haiku-4-5)                     |
+| `--context <text>`  | Override the checks file's context field (replaces it entirely) |
+| `--concurrency <n>` | Max parallel checks (default: 10)                               |
+| `--verbose`         | Include verbose output on stderr                                |
+| `-V, --version`     | Show version                                                    |
+| `-h, --help`        | Show help with full checks file schema reference                |
 
 ### Lint
 

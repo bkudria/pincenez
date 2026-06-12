@@ -158,7 +158,7 @@ async function main() {
     .argument('[checks.yaml]', 'Checks file defining checks to evaluate')
     .argument('[output]', 'File or directory for the LLM to read and evaluate (default: stdin)')
     .option('--model <model>', 'LLM judge model (default: claude-haiku-4-5)')
-    .option('--context <text>', "Override or supplement the checks file's context field")
+    .option('--context <text>', "Override the checks file's context field (replaces it entirely)")
     .option('--concurrency <n>', 'Max parallel checks', '10')
     .option('-v, --verbose', 'Print completion summary to stderr')
     .addHelpText('after', HELP_TEXT)
