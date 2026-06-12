@@ -135,7 +135,7 @@ pincenez [options] <checks.yaml> [output]
 | Option              | Description                                            |
 | ------------------- | ------------------------------------------------------ |
 | `--model <model>`   | LLM judge model (default: claude-haiku-4-5)            |
-| `--context <text>`  | Override or supplement the checks file's context field |
+| `--context <text>`  | Override the checks file's context field (replaces it entirely) |
 | `--concurrency <n>` | Max parallel checks (default: 10)                      |
 | `--verbose`         | Include verbose output on stderr                       |
 | `-V, --version`     | Show version                                           |

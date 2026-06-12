@@ -16,6 +16,7 @@ Checks File Schema (YAML):
 
   Field Reference:
     context             What task produced this output. Orients the judge.
+                        Replaced entirely by --context when that flag is passed.
     checks[].{id}       Map key is the unique check identifier.
     checks[].check      The statement to evaluate. Objective, verifiable claim.
     checks[].note       Grading hint. Improves human-judge alignment significantly.
