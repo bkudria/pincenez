@@ -92,6 +92,37 @@ describe('buildLintSystemPrompt', () => {
     // Without the list, the analyst must not speculate about availability.
     expect(rules).toMatch(/speculate|general knowledge/i);
   });
+
+  it('carves out note-declared presence anchors from tautological', () => {
+    const sys = buildLintSystemPrompt();
+    const start = sys.indexOf('**tautological**');
+    const end = sys.indexOf('**always_passes**');
+    expect(start).toBeGreaterThan(-1);
+    const tautological = sys.slice(start, end);
+    expect(tautological).toContain('presence anchor');
+    expect(tautological).toContain('declare that intent in their note');
+  });
+
+  it('carves out note-declared regression baselines from always_passes', () => {
+    const sys = buildLintSystemPrompt();
+    const start = sys.indexOf('**always_passes**');
+    const end = sys.indexOf('**unverifiable**');
+    expect(start).toBeGreaterThan(-1);
+    const alwaysPasses = sys.slice(start, end);
+    expect(alwaysPasses).toContain('survives the config');
+    expect(alwaysPasses).toContain('declare that intent in their note');
+  });
+
+  it('rules honor declared note intent without making it a lint waiver', () => {
+    const sys = buildLintSystemPrompt();
+    const rules = sys.slice(sys.indexOf('## Rules'));
+    expect(rules).toContain('regression baseline');
+    expect(rules).toContain('presence anchor');
+    // The judge sees one check at a time, so a declared pairing is taken as given.
+    expect(rules).toContain('face value');
+    // The guard is load-bearing: declared intent must not exempt the other categories.
+    expect(rules).toContain('not a lint waiver');
+  });
 });
 
 describe('buildLintUserPrompt', () => {
@@ -227,6 +258,16 @@ describe('getLintRulesText', () => {
       expect(rules).toContain(name);
       expect(prompt).toContain(name);
     }
+  });
+
+  it('documents declared intent for regression and presence-anchor checks', () => {
+    const rules = getLintRulesText();
+    // Flows from the tautological description.
+    expect(rules).toContain('presence anchor');
+    // Flows from the always_passes description.
+    expect(rules).toContain('survives the config');
+    // The Writing Good Checks summary tells authors to declare intent.
+    expect(rules).toContain('presence-anchor intent');
   });
 });
 
