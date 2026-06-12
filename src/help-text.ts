@@ -33,6 +33,10 @@ Output Format:
 
   pass_rate is written after all checks finish.
 
+  Verdicts are non-deterministic: each check is a single LLM judgment with
+  no seed or temperature control, so re-running identical inputs may flip
+  individual verdicts. Sharpen the check text and note rather than re-rolling.
+
 Examples:
   # Grade a file against a checks file
   pincenez checks.yaml output.md

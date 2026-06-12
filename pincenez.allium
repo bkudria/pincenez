@@ -166,6 +166,14 @@ contract Judge {
         -- mirrors scuttlerun.allium's @guarantee
         -- TranscriptToolFieldContract and must be updated in lockstep
         -- when that contract changes.
+
+    @guidance
+        -- Verdicts are non-deterministic. Each grade call produces a
+        -- single sampled verdict with no retry, voting, or seed-based
+        -- replay; the Agent SDK exposes no temperature or seed
+        -- parameters. Identical inputs may yield different verdicts
+        -- across invocations. Verdict variance is addressed by
+        -- better-specified checks and notes, not sampling control.
 }
 
 -- The analyst LLM consulted to lint Checks for anti-patterns.
@@ -215,6 +223,14 @@ contract LintAnalyst {
         -- Write/Edit). A Check that already depends on dropped fields
         -- warrants unverifiable, with a suggestion targeting a recorded
         -- field or another observable evidence source.
+
+    @guidance
+        -- Findings are non-deterministic, advisory judgments. Each
+        -- analyse call produces a single sampled response with no
+        -- retry, voting, or seed-based replay (the Agent SDK exposes
+        -- no temperature or seed parameters), so re-running identical
+        -- inputs may add or drop individual findings. Consumers judge
+        -- each finding on its merits.
 }
 
 ------------------------------------------------------------

@@ -259,6 +259,11 @@ export function getLintRulesText(): string {
     `  - Plugin-component tool calls (\`tool: Skill\`, \`tool: Agent\`, \`tool: mcp__<server>__<tool>\`) in the transcript ARE observable output`,
   );
   lines.push(`  - Add a note: field to orient the grader toward the right evidence`);
+  lines.push(``);
+  lines.push(`Determinism:`);
+  lines.push(`  Findings are non-deterministic, advisory judgments: each check is a single`);
+  lines.push(`  LLM call with no seed or temperature control, so re-running may add or drop`);
+  lines.push(`  individual findings. Judge each finding on its merits.`);
 
   return lines.join('\n');
 }
