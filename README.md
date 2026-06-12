@@ -111,6 +111,8 @@ pass_rate: 0.67
 
 Results appear in arrival order (whichever check finishes first). `pass_rate` is written after all checks complete.
 
+Verdicts are non-deterministic. Each check is a single LLM judgment, and the underlying Agent SDK exposes no seed or temperature control, so re-running identical inputs may flip individual verdicts. If a verdict is unstable, the fix is a sharper `check` statement or `note` — not re-rolling until the answer changes.
+
 ## Examples
 
 The [`examples/`](https://github.com/bkudria/pincenez/tree/main/examples) directory has runnable checks/transcript pairs:
@@ -169,6 +171,8 @@ checks_with_issues: 1
 ```
 
 `checks_total` and `checks_with_issues` are written after all checks settle; `cost_usd` is appended when > 0. Like grade, `lint` exits 0 on completion regardless of `checks_with_issues` — downstream consumers parse the YAML to detect issue presence.
+
+Lint findings are advisory and non-deterministic — re-running may add or drop individual findings (see the determinism note under [Output](#output)). Judge each finding on its merits rather than treating presence or absence across runs as authoritative.
 
 ## Exit Codes
 

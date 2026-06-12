@@ -297,3 +297,16 @@ describe('getLintRulesText — Common Slips coverage mirrors system prompt', () 
     expect(help).toContain('enumerated');
   });
 });
+
+describe('getLintRulesText — non-determinism disclosure', () => {
+  const help = getLintRulesText().toLowerCase();
+
+  it('--help discloses that findings are non-deterministic and advisory', () => {
+    expect(help).toContain('non-deterministic');
+    expect(help).toContain('advisory');
+  });
+
+  it('--help explains that re-running may change which findings appear', () => {
+    expect(help).toMatch(/re-run|rerun/);
+  });
+});

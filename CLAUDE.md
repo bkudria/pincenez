@@ -43,6 +43,7 @@ Data flow: `CLI → loadChecksFile() → run() → gradeCheck() (parallel, one p
 ## Key Design Decisions
 
 - **One LLM call per check** — prevents cross-contamination between verdicts
+- **Judge verdicts are non-deterministic** — each check (grade and lint alike) is a single un-seeded LLM call; the Agent SDK exposes no seed/temperature, and there is no retry/voting layer. Disclosed in README and `--help`; GOALS.md lists verdict determinism as a non-goal.
 - **Parallel by default** — N checks = N concurrent LLM calls via `Promise.allSettled`
 - **Exit code 0 = operational success** — check failures are data, not errors. Exit 1 = checks file error, Exit 2 = runtime error.
 - **Default model: claude-haiku-4-5 for grading** — cheapest/fastest. Per-check `model` field overrides `--model` flag. Lint defaults to claude-sonnet-4-6 for stronger anti-pattern judgment.

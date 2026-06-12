@@ -15,7 +15,7 @@ Each tool owns one step of the pipeline. They compose via files and stdout.
 
 ### Research-Informed Principles
 
-- **Binary checks over numeric scales.** LLMs are text generators, not calibrated scorers. Binary pass/fail per criterion is dramatically more reliable and reproducible than 1-5 scoring.
+- **Binary checks over numeric scales.** LLMs are text generators, not calibrated scorers. Binary pass/fail per criterion is dramatically more reliable than 1-5 scoring — though still sampled, not reproducible (see Non-Goals).
 - **One check per evaluation.** Evaluating checks independently avoids cross-contamination where earlier verdicts influence later ones. More expensive (N calls), but more reliable.
 - **Grading notes boost accuracy.** Short per-check hints about what pass/fail looks like significantly improve human-judge alignment.
 - **Code-based checks first, LLM only for what code can't verify.** Pincenez is LLM-only by design, but its output schema is composable with deterministic check results (grep, jq, test).
@@ -40,6 +40,7 @@ Each tool owns one step of the pipeline. They compose via files and stdout.
 - Replacing the eval orchestrator (craboodle owns pipeline coordination)
 - Deterministic/code-based check types (use grep, jq, test — pincenez is LLM-only)
 - Checks file dimensions / qualitative scoring (too subjective, prone to hallucination)
+- Verdict determinism (the Agent SDK exposes no seed/temperature, and pincenez adds no retry/voting layer — each check is judged once; verdict variance is addressed by better-specified checks and notes, not sampling control)
 
 ## Resolved Questions
 
