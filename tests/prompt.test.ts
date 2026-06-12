@@ -46,6 +46,32 @@ describe('buildGraderSystemPrompt', () => {
     expect(skillIndex).toBeGreaterThan(awarenessIndex);
   });
 
+  it('documents the transcript field contract (lossy tool entries)', () => {
+    const sys = buildGraderSystemPrompt();
+    expect(sys).toContain('## Transcript Field Contract');
+    // Content-bearing fields are dropped for Read/Write/Edit; only path survives.
+    expect(sys).toContain('old_string');
+    expect(sys).toContain('new_string');
+    expect(sys).toMatch(/dropped/i);
+    expect(sys).toContain('path');
+    // Other known tools' recorded fields.
+    expect(sys).toContain('command');
+    expect(sys).toContain('pattern');
+    // Unknown tools keep their full input.
+    expect(sys).toMatch(/verbatim/i);
+    // Full inputs live in the SDK JSONL, not the YAML transcript.
+    expect(sys).toContain('JSONL');
+  });
+
+  it('tells the grader how to fail content-assertions the transcript cannot support', () => {
+    const sys = buildGraderSystemPrompt();
+    const contractIndex = sys.indexOf('## Transcript Field Contract');
+    expect(contractIndex).toBeGreaterThan(-1);
+    // The guidance must say content cannot be verified from the transcript alone.
+    expect(sys.slice(contractIndex)).toMatch(/cannot be verified/i);
+    expect(sys.slice(contractIndex)).toMatch(/by design/i);
+  });
+
   it('tells the grader where slash commands and hooks appear (or do not appear) in transcripts', () => {
     const sys = buildGraderSystemPrompt();
     expect(sys).toContain('slash');

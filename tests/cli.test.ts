@@ -279,6 +279,28 @@ describe('lintAction', () => {
     );
   });
 
+  it('splits --available-tools into a trimmed list for runLint', async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
+    mockRunLint.mockResolvedValue({ results: [], checksWithIssues: 0, costUsd: 0 });
+    const lintCmd = makeProgramStub();
+    await lintAction('checks.yaml', { availableTools: 'Read, TaskCreate ,Skill' }, lintCmd);
+    expect(mockRunLint).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ availableTools: ['Read', 'TaskCreate', 'Skill'] }),
+    );
+  });
+
+  it('omits availableTools from runLint options when the flag is absent', async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
+    mockRunLint.mockResolvedValue({ results: [], checksWithIssues: 0, costUsd: 0 });
+    const lintCmd = makeProgramStub();
+    await lintAction('checks.yaml', {}, lintCmd);
+    expect(mockRunLint).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ availableTools: undefined }),
+    );
+  });
+
   it('aborts the controller and writes to stderr when SIGINT fires during lint', async () => {
     mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
     let capturedController: AbortController | undefined;

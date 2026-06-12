@@ -30,7 +30,7 @@ npm run dev -- <args>    # Run via tsx without building (e.g. npm run dev -- che
 
 ## Architecture
 
-Five source files in `src/`, each with a single responsibility:
+Source files in `src/`, each with a single responsibility (grading core shown; lint mirrors it as `lint-prompt.ts` / `linter.ts` / `lint-runner.ts`):
 
 - **cli.ts** — Commander-based CLI entry point. Parses args, reads stdin to temp file if needed, calls `run()`. Not covered by tests.
 - **config.ts** — Checks file schema (Zod validation) and YAML parsing. Exports `loadChecksFile()` / `parseChecksFile()` and the `ChecksFile` / `Check` types.
@@ -47,5 +47,6 @@ Data flow: `CLI → loadChecksFile() → run() → gradeCheck() (parallel, one p
 - **Exit code 0 = operational success** — check failures are data, not errors. Exit 1 = checks file error, Exit 2 = runtime error.
 - **Default model: claude-haiku-4-5 for grading** — cheapest/fastest. Per-check `model` field overrides `--model` flag. Lint defaults to claude-sonnet-4-6 for stronger anti-pattern judgment.
 - **Agent SDK with Read-only tools** — LLM can read the output file but not write anything
+- **Judge prompts embed scuttlerun's transcript field contract** — `buildTranscriptFieldContractSection()` in `prompt.ts` (shared by the grader and lint system prompts) mirrors `scuttlerun.allium`'s `@guarantee TranscriptToolFieldContract` (which tool-call fields the YAML transcript keeps vs. drops). If scuttlerun changes the captured fields, this section must be updated in lockstep.
 - **Unsets `CLAUDECODE` per call via `options.env`** — when pincenez runs inside a Claude Code session, the SDK errors with nested-session failures if `CLAUDECODE=1` is inherited. Each `query()` call in `grader.ts` and `linter.ts` passes `env: { ...process.env, CLAUDECODE: undefined }` so the subprocess never sees it; the parent's `process.env` is not mutated.
 - **ESM throughout** — `"type": "module"` in package.json, `NodeNext` module resolution. Imports use `.js` extensions.

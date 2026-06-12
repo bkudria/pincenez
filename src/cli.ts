@@ -88,7 +88,13 @@ export async function gradeAction(
 
 export async function lintAction(
   checksFileArg: string | undefined,
-  opts: { model?: string; context?: string; verbose?: boolean; concurrency?: string },
+  opts: {
+    model?: string;
+    context?: string;
+    availableTools?: string;
+    verbose?: boolean;
+    concurrency?: string;
+  },
   lintCmd: Command,
 ) {
   if (!checksFileArg) {
@@ -110,6 +116,12 @@ export async function lintAction(
     const { checksWithIssues } = await runLint(checksFile, {
       model: opts.model,
       context: opts.context,
+      availableTools: opts.availableTools
+        ? opts.availableTools
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0)
+        : undefined,
       controller,
       concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
     });
@@ -159,6 +171,10 @@ async function main() {
     .description('Check quality for common anti-patterns')
     .option('--model <model>', 'LLM model for lint analysis (default: claude-sonnet-4-6)')
     .option('--context <text>', 'Scenario prompt (helps detect tautological checks)')
+    .option(
+      '--available-tools <tools>',
+      'Tools available in the session under test, comma-separated (grounds tool-availability judgments)',
+    )
     .option('--concurrency <n>', 'Max parallel checks', '10')
     .option('-v, --verbose', 'Print completion summary to stderr')
     .addHelpText('after', getLintRulesText())

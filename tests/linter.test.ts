@@ -167,6 +167,16 @@ describe('lintCheck', () => {
     expect(callArgs.prompt).toBe(buildLintUserPrompt(testCheck));
   });
 
+  it('threads availableTools into the user prompt', async () => {
+    mockQuery.mockReturnValue(asyncMessages([resultMessage('{"issues": []}')]));
+
+    await lintCheck(testCheck, { availableTools: ['Read', 'TaskCreate'] });
+
+    const callArgs = mockQuery.mock.calls[0][0];
+    expect(callArgs.prompt).toBe(buildLintUserPrompt(testCheck, undefined, ['Read', 'TaskCreate']));
+    expect(callArgs.prompt).toContain('## Session Tool Configuration');
+  });
+
   it('passes outputFormat with json_schema and sufficient maxTurns to query', async () => {
     mockQuery.mockReturnValue(asyncMessages([resultMessage('{"issues": []}')]));
 

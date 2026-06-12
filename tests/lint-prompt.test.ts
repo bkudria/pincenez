@@ -64,6 +64,34 @@ describe('buildLintSystemPrompt', () => {
     expect(unverifiableIndex).toBeGreaterThan(-1);
     expect(skillIndex).toBeGreaterThan(unverifiableIndex);
   });
+
+  it('documents the transcript field contract (lossy tool entries)', () => {
+    const sys = buildLintSystemPrompt();
+    expect(sys).toContain('## Transcript Field Contract');
+    expect(sys).toContain('old_string');
+    expect(sys).toContain('new_string');
+    expect(sys).toMatch(/dropped/i);
+    expect(sys).toContain('JSONL');
+  });
+
+  it('forbids suggesting rewrites that assert on dropped transcript fields', () => {
+    const sys = buildLintSystemPrompt();
+    const rulesIndex = sys.indexOf('## Rules');
+    expect(rulesIndex).toBeGreaterThan(-1);
+    const rules = sys.slice(rulesIndex);
+    // The rule must connect dropped fields to ungradeable suggestions.
+    expect(rules).toMatch(/ungradeable/i);
+    expect(rules).toMatch(/dropped/i);
+  });
+
+  it('treats a provided session tool list as authoritative for availability', () => {
+    const sys = buildLintSystemPrompt();
+    const rules = sys.slice(sys.indexOf('## Rules'));
+    expect(rules).toContain('Session Tool Configuration');
+    expect(rules).toMatch(/authoritative/i);
+    // Without the list, the analyst must not speculate about availability.
+    expect(rules).toMatch(/speculate|general knowledge/i);
+  });
 });
 
 describe('buildLintUserPrompt', () => {
@@ -101,6 +129,26 @@ describe('buildLintUserPrompt', () => {
     expect(prompt).not.toContain('## Domain Detection');
     expect(prompt).not.toContain('**vague**');
     expect(prompt).not.toContain('## Rules');
+  });
+
+  it('includes the session tool configuration section when tools are provided', () => {
+    const prompt = buildLintUserPrompt(baseCheck, undefined, ['Read', 'TaskCreate']);
+    expect(prompt).toContain('## Session Tool Configuration');
+    expect(prompt).toContain('Read');
+    expect(prompt).toContain('TaskCreate');
+  });
+
+  it('omits the session tool configuration section when tools are absent or empty', () => {
+    expect(buildLintUserPrompt(baseCheck)).not.toContain('## Session Tool Configuration');
+    expect(buildLintUserPrompt(baseCheck, 'ctx', [])).not.toContain(
+      '## Session Tool Configuration',
+    );
+  });
+
+  it('renders context and tools together', () => {
+    const prompt = buildLintUserPrompt(baseCheck, 'Write a haiku', ['Read']);
+    expect(prompt).toContain('## Scenario Context');
+    expect(prompt).toContain('## Session Tool Configuration');
   });
 });
 
