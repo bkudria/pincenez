@@ -67,14 +67,14 @@ export const ANTI_PATTERNS: AntiPattern[] = [
   {
     name: 'tautological',
     description:
-      'Restates the prompt as a check without adding specificity. If the prompt says "write a function" and the check says "output contains a function", that\'s tautological. Good checks test HOW, not WHETHER.',
+      'Restates the prompt as a check without adding specificity. If the prompt says "write a function" and the check says "output contains a function", that\'s tautological. Good checks test HOW, not WHETHER — unless WHETHER is the point: a presence anchor that gives a paired negative/ordering check something to constrain, or a regression baseline asserting the task still completes under the config, deliberately tests WHETHER. Such checks must declare that intent in their note.',
     example: 'Prompt "Write a haiku" → check "Output contains a haiku" (tautological).',
     fix: '"Output has exactly 3 lines following 5-7-5 syllable pattern"',
   },
   {
     name: 'always_passes',
     description:
-      "Tests baseline LLM behavior that would happen without any special skill/config. If Claude would naturally do this without guidance, the check isn't testing anything meaningful. (Contrast unfalsifiable: a check that structurally cannot fail, rather than one the model satisfies by default.)",
+      "Tests baseline LLM behavior that would happen without any special skill/config. If Claude would naturally do this without guidance, the check isn't testing anything meaningful. Exception: a regression check deliberately asserts that baseline behavior survives the config — it fails when the config breaks the behavior, so it is falsifiable and meaningful. Such checks must declare that intent in their note. (Contrast unfalsifiable: a check that structurally cannot fail, rather than one the model satisfies by default.)",
     example: '"Output is written in English" or "Output contains code" for a coding task.',
     fix: '"Output uses the test-first pattern taught in the skill\'s TDD reference (not a generic `it.todo`)"',
   },
@@ -173,6 +173,9 @@ export function buildLintSystemPrompt(): string {
     `- For always_passes, consider whether a general-purpose LLM would typically do this without special instruction.`,
   );
   parts.push(
+    `- Honor declared intent in the check's note. When the note declares the check as a regression baseline (asserting baseline behavior survives the config) or as a presence anchor for a paired negative/ordering check, do NOT flag tautological or always_passes for testing WHETHER rather than HOW — that form is deliberate. You analyze one check at a time and cannot see siblings, so take a declared pairing at face value. The declaration is not a lint waiver: vague, compound, unverifiable, over_specific, and unfalsifiable still apply in full, and a note that merely stresses the check's importance without declaring a regression/anchor design earns no exemption.`,
+  );
+  parts.push(
     `- For over_specific, do NOT flag checks where the alternative approach would be a security vulnerability, a correctness violation, or a contract breach — not just a stylistic preference. A check like "uses approach X, not approach Y" is legitimately specific ONLY when Y would produce an objectively wrong outcome (e.g. a known vulnerability class, a protocol violation, or a silently-wrong computation). Only flag when multiple valid approaches exist and the check mandates one for non-correctness reasons.`,
   );
   parts.push(
@@ -259,6 +262,9 @@ export function getLintRulesText(): string {
     `  - Plugin-component tool calls (\`tool: Skill\`, \`tool: Agent\`, \`tool: mcp__<server>__<tool>\`) in the transcript ARE observable output`,
   );
   lines.push(`  - Add a note: field to orient the grader toward the right evidence`);
+  lines.push(
+    `  - Declare regression-baseline or presence-anchor intent in note: — lint honors declared intent for those deliberate WHETHER checks`,
+  );
   lines.push(``);
   lines.push(`Determinism:`);
   lines.push(`  Findings are non-deterministic, advisory judgments: each check is a single`);

@@ -31,7 +31,8 @@
 external entity Check {
     id: String                    -- unique within its CheckSet
     check: String                 -- the claim to evaluate
-    note: String?                 -- grading hint; orients the judge
+    note: String?                 -- grading hint; orients the judge and
+                                  -- declares check design intent to lint
     model: String?                -- per-check judge model, overrides defaults
 }
 
@@ -205,6 +206,19 @@ contract LintAnalyst {
         -- scenario context. Without context, the analyst skips this
         -- category rather than guessing.
 
+    @invariant DeclaredIntentCalibration
+        -- A Check whose note declares it as a regression baseline
+        -- (asserting baseline behaviour survives the config) or as a
+        -- presence anchor for a paired negative/ordering check is not
+        -- flagged tautological or always_passes for testing WHETHER
+        -- rather than HOW — that form is deliberate and falsifiable.
+        -- The analyst inspects one Check at a time and takes a
+        -- declared pairing at face value. The declaration exempts only
+        -- those two categories: vague, compound, unverifiable,
+        -- over_specific and unfalsifiable apply in full, and a note
+        -- that merely stresses importance without declaring such a
+        -- design earns no exemption.
+
     @invariant ToolAvailabilityGrounding
         -- When available_tools is provided, it is the authoritative
         -- list of tools available in the session under test — custom
@@ -248,8 +262,11 @@ enum Verdict {
 enum AntiPattern {
     vague                        -- subjective terms without specifics
   | compound                     -- multiple independent claims in one check
-  | tautological                 -- restates the prompt without specificity
-  | always_passes                -- tests baseline LLM behaviour
+  | tautological                 -- restates the prompt without specificity;
+                                 -- note-declared presence anchors and
+                                 -- regression baselines are exempt
+  | always_passes                -- tests baseline LLM behaviour;
+                                 -- note-declared regression baselines are exempt
   | unverifiable                 -- references internal state, not output;
                                  -- transcript tool-call entries like
                                  -- tool: Skill / Agent / mcp__* count as output
