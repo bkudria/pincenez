@@ -199,7 +199,10 @@ contract LintAnalyst {
     @invariant SuggestionsAreClean
         -- A suggested rewrite must not introduce a different
         -- anti-pattern. The analyst verifies its own suggestions
-        -- before emitting them.
+        -- before emitting them. A clean rewrite states the outcome
+        -- as the criterion and keeps any enumeration as
+        -- non-exhaustive examples ("(e.g., ...)"), never a closed
+        -- list as the requirement.
 
     @invariant TautologicalRequiresContext
         -- The tautological category compares the Check against the
@@ -260,7 +263,9 @@ enum Verdict {
 
 -- The lint anti-pattern categories detected on Checks.
 enum AntiPattern {
-    vague                        -- subjective terms without specifics
+    vague                        -- subjective terms without specifics;
+                                 -- a concrete outcome with non-exhaustive
+                                 -- examples is exempt
   | compound                     -- multiple independent claims in one check
   | tautological                 -- restates the prompt without specificity;
                                  -- note-declared presence anchors and
