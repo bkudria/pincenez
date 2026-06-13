@@ -113,6 +113,26 @@ describe('buildLintSystemPrompt', () => {
     expect(alwaysPasses).toContain('declare that intent in their note');
   });
 
+  it('rules calibrate compound for ordering claims and falsifiable-as-written splits', () => {
+    const sys = buildLintSystemPrompt();
+    const rules = sys.slice(sys.indexOf('## Rules'));
+    expect(rules).toContain('For compound');
+    expect(rules).toContain('sole assertion is the relative order');
+    // A falsifiable ordering check must not be pushed into a presence-anchor pairing.
+    expect(rules).toContain('falsifiable as written');
+  });
+
+  it('carves out pure ordering claims from compound', () => {
+    const sys = buildLintSystemPrompt();
+    const start = sys.indexOf('**compound**');
+    const end = sys.indexOf('**tautological**');
+    expect(start).toBeGreaterThan(-1);
+    const compound = sys.slice(start, end);
+    // "X happens before Y" with order as the only claim is a single check.
+    expect(compound).toContain('sole assertion');
+    expect(compound).toContain('one ordering claim, not compound');
+  });
+
   it('rules honor declared note intent without making it a lint waiver', () => {
     const sys = buildLintSystemPrompt();
     const rules = sys.slice(sys.indexOf('## Rules'));
@@ -268,6 +288,18 @@ describe('getLintRulesText', () => {
     expect(rules).toContain('survives the config');
     // The Writing Good Checks summary tells authors to declare intent.
     expect(rules).toContain('presence-anchor intent');
+  });
+
+  it('names pure ordering claims as single checks under Writing Good Checks', () => {
+    const rules = getLintRulesText();
+    const start = rules.indexOf('Writing Good Checks:');
+    const end = rules.indexOf('Determinism:');
+    expect(start).toBeGreaterThan(-1);
+    // Scoped to the guidance section — the compound definition mentions
+    // ordering claims too, and must not satisfy this on its own.
+    const guidance = rules.slice(start, end);
+    expect(guidance).toContain('pure ordering claim');
+    expect(guidance).toContain('single check');
   });
 });
 

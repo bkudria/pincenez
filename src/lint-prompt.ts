@@ -36,7 +36,7 @@ export const ANTI_PATTERNS: AntiPattern[] = [
   {
     name: 'compound',
     description:
-      'Tests two or more independent things in one check. Contains "AND", "and also", "as well as", or tests multiple distinct behaviors. Each should be its own check.',
+      'Tests two or more independent things in one check. Contains "AND", "and also", "as well as", or tests multiple distinct behaviors. Each should be its own check. Exception: a check whose sole assertion is the relative order of identified events — "X happens before Y", or a single window claim "between X and Y, Z occurs" — is one ordering claim, not compound; splitting applies when ordering is bundled onto a separate claim about an event\'s content.',
     example: '"Code uses correct syntax AND includes error handling" → split into two checks.',
     fix: '(1) "Response body is valid JSON" (2) "Response includes a \\"next_cursor\\" field for pagination"',
     slips: [
@@ -173,6 +173,9 @@ export function buildLintSystemPrompt(): string {
     `- For always_passes, consider whether a general-purpose LLM would typically do this without special instruction.`,
   );
   parts.push(
+    `- For compound, a temporal clause is not automatically a second claim. A check whose sole assertion is the relative order of identified events ("X happens before Y", "at least one X precedes Y") — or a single window claim ("between X and Y, Z occurs") — is one ordering claim: do NOT flag it compound. Flag compound only when ordering is bundled onto a separate claim about an event's content ("asks about item 2 before any edit to hello.py" asserts what the ask is about AND where it sits — split it). And do not demand a presence-anchor pairing for an ordering check that is falsifiable as written: "at least one X before Y" fails when X never occurs; reserve the pairing suggestion for vacuous negative-universals.`,
+  );
+  parts.push(
     `- Honor declared intent in the check's note. When the note declares the check as a regression baseline (asserting baseline behavior survives the config) or as a presence anchor for a paired negative/ordering check, do NOT flag tautological or always_passes for testing WHETHER rather than HOW — that form is deliberate. You analyze one check at a time and cannot see siblings, so take a declared pairing at face value. The declaration is not a lint waiver: vague, compound, unverifiable, over_specific, and unfalsifiable still apply in full, and a note that merely stresses the check's importance without declaring a regression/anchor design earns no exemption.`,
   );
   parts.push(
@@ -255,6 +258,9 @@ export function getLintRulesText(): string {
 
   lines.push(`Writing Good Checks:`);
   lines.push(`  - Each check should test one thing (split compound checks)`);
+  lines.push(
+    `  - A pure ordering claim ("X happens before Y", "between X and Y, Z occurs") is a single check — split only when ordering is bundled onto a separate claim about an event's content`,
+  );
   lines.push(`  - Name specific elements, not vague qualities`);
   lines.push(`  - Test what the config adds, not baseline LLM behavior`);
   lines.push(`  - Assert observable output, not internal reasoning`);
