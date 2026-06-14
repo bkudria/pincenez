@@ -133,6 +133,28 @@ describe('buildLintSystemPrompt', () => {
     expect(compound).toContain('one ordering claim, not compound');
   });
 
+  it('rules distinguish requirement lists from example lists and bind rewrites to the sanctioned form', () => {
+    const sys = buildLintSystemPrompt();
+    const rules = sys.slice(sys.indexOf('## Rules'));
+    expect(rules).toContain('Distinguish requirement lists from example lists');
+    // The sanctioned form must be protected from cross-flagging as vague...
+    expect(rules).toContain('do NOT flag it as vague');
+    // ...and the analyst's own rewrites must take the sanctioned form.
+    expect(rules).toContain('never present a closed list as the requirement');
+  });
+
+  it('carves out the outcome-plus-non-exhaustive-examples form from vague', () => {
+    const sys = buildLintSystemPrompt();
+    const start = sys.indexOf('**vague**');
+    const end = sys.indexOf('**compound**');
+    expect(start).toBeGreaterThan(-1);
+    const vague = sys.slice(start, end);
+    // The over_specific remedy form must be safe from vague flags.
+    expect(vague).toContain('non-exhaustive');
+    expect(vague).toContain('NOT vague');
+    expect(vague).toContain('outcome is the gradable criterion');
+  });
+
   it('rules honor declared note intent without making it a lint waiver', () => {
     const sys = buildLintSystemPrompt();
     const rules = sys.slice(sys.indexOf('## Rules'));
@@ -300,6 +322,18 @@ describe('getLintRulesText', () => {
     const guidance = rules.slice(start, end);
     expect(guidance).toContain('pure ordering claim');
     expect(guidance).toContain('single check');
+  });
+
+  it('names the outcome-plus-non-exhaustive-examples form under Writing Good Checks', () => {
+    const rules = getLintRulesText();
+    const start = rules.indexOf('Writing Good Checks:');
+    const end = rules.indexOf('Determinism:');
+    expect(start).toBeGreaterThan(-1);
+    // Scoped to the guidance section — the over_specific slip text mentions
+    // non-exhaustive examples too, and must not satisfy this on its own.
+    const guidance = rules.slice(start, end);
+    expect(guidance).toContain('non-exhaustive examples');
+    expect(guidance).toMatch(/outcome .* the criterion/i);
   });
 });
 
