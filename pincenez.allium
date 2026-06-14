@@ -266,7 +266,9 @@ enum AntiPattern {
     vague                        -- subjective terms without specifics;
                                  -- a concrete outcome with non-exhaustive
                                  -- examples is exempt
-  | compound                     -- multiple independent claims in one check
+  | compound                     -- multiple independent claims in one check;
+                                 -- a pure ordering claim (relative order is
+                                 -- the sole assertion) is a single check
   | tautological                 -- restates the prompt without specificity;
                                  -- note-declared presence anchors and
                                  -- regression baselines are exempt
