@@ -145,11 +145,11 @@ describe('runLint', () => {
       issues: [],
     });
 
-    await runLint({ checks: [{ id: 'a1', check: 'test' }] }, { model: 'claude-sonnet-4-6' });
+    await runLint({ checks: [{ id: 'a1', check: 'test' }] }, { model: 'claude-sonnet-5' });
 
     expect(mockLintCheck).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({ model: 'claude-sonnet-4-6' }),
+      expect.objectContaining({ model: 'claude-sonnet-5' }),
     );
   });
 

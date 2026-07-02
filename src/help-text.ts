@@ -12,7 +12,7 @@ Checks File Schema (YAML):
       - file-created:                       # ID as key (required)
           check: "ocean.txt was created"    # Binary claim to evaluate (required)
           note: "Look for Write tool usage" # Grading hint (optional)
-          model: claude-sonnet-4-6          # Model override (optional)
+          model: claude-sonnet-5            # Model override (optional)
 
   Field Reference:
     context             What task produced this output. Orients the judge.
@@ -46,7 +46,7 @@ Examples:
   scuttlerun session.yaml | pincenez checks.yaml
 
   # Use a stronger model for all checks
-  pincenez checks.yaml output.md --model claude-sonnet-4-6
+  pincenez checks.yaml output.md --model claude-sonnet-5
 
   # CI quality gate with yq
   pincenez checks.yaml output.md | yq -e '.pass_rate == 1.0'

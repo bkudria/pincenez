@@ -392,7 +392,7 @@ entity LintResult {
 
 config {
     default_grading_model: String = "claude-haiku-4-5"
-    default_lint_model: String = "claude-sonnet-4-6"
+    default_lint_model: String = "claude-sonnet-5"
 }
 
 ------------------------------------------------------------
