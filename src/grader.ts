@@ -59,6 +59,7 @@ export async function gradeCheck(
     model?: string;
     context?: string;
     controller?: AbortController;
+    sdkEnv?: Record<string, string | undefined>;
   } = {},
 ): Promise<CheckResult> {
   const model = check.model ?? options.model ?? DEFAULT_MODEL;
@@ -78,7 +79,7 @@ export async function gradeCheck(
       prompt,
       options: {
         model,
-        env: { ...process.env, CLAUDECODE: undefined },
+        env: options.sdkEnv ?? { ...process.env, CLAUDECODE: undefined },
         tools: ['Read'],
         additionalDirectories: [dirname(outputPath)],
         maxTurns: 30,

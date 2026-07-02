@@ -434,4 +434,13 @@ describe('lintCheck', () => {
     delete process.env.CLAUDECODE;
     delete process.env.PINCENEZ_TEST_VAR;
   });
+
+  it('passes options.sdkEnv to query() verbatim when provided', async () => {
+    mockQuery.mockReturnValue(asyncMessages([resultMessage('{"issues": []}')]));
+
+    const sdkEnv = { ANTHROPIC_API_KEY: undefined, HOME: '/home/user' };
+    await lintCheck(testCheck, { sdkEnv });
+
+    expect(mockQuery.mock.calls[0]?.[0]?.options?.env).toBe(sdkEnv);
+  });
 });

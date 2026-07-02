@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { loadChecksFile } from './config.js';
+import { parseAuthMode } from './auth.js';
 import { run } from './runner.js';
 import { runLint } from './lint-runner.js';
 import { getLintRulesText } from './lint-prompt.js';
@@ -20,7 +21,13 @@ const pkg = require('../package.json') as { version: string };
 export async function gradeAction(
   checksFileArg: string | undefined,
   outputArg: string | undefined,
-  opts: { model?: string; context?: string; verbose?: boolean; concurrency?: string },
+  opts: {
+    model?: string;
+    context?: string;
+    verbose?: boolean;
+    concurrency?: string;
+    auth?: string;
+  },
   program: Command,
 ) {
   if (!checksFileArg || checksFileArg === 'help') {
@@ -29,6 +36,7 @@ export async function gradeAction(
   }
 
   try {
+    const auth = opts.auth ? parseAuthMode(opts.auth) : undefined;
     const checksPath = resolve(checksFileArg);
     const checksFile = await loadChecksFile(checksPath);
 
@@ -63,6 +71,7 @@ export async function gradeAction(
         context: opts.context,
         controller,
         concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
+        auth,
       });
 
       if (opts.verbose) {
@@ -94,6 +103,7 @@ export async function lintAction(
     availableTools?: string;
     verbose?: boolean;
     concurrency?: string;
+    auth?: string;
   },
   lintCmd: Command,
 ) {
@@ -110,6 +120,7 @@ export async function lintAction(
   process.once('SIGINT', sigintHandler);
 
   try {
+    const auth = opts.auth ? parseAuthMode(opts.auth) : undefined;
     const checksPath = resolve(checksFileArg);
     const checksFile = await loadChecksFile(checksPath);
 
@@ -124,6 +135,7 @@ export async function lintAction(
         : undefined,
       controller,
       concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
+      auth,
     });
 
     if (opts.verbose) {
@@ -159,6 +171,10 @@ async function main() {
     .argument('[output]', 'File or directory for the LLM to read and evaluate (default: stdin)')
     .option('--model <model>', 'LLM judge model (default: claude-haiku-4-5)')
     .option('--context <text>', "Override the checks file's context field (replaces it entirely)")
+    .option(
+      '--auth <mode>',
+      'Credential preference: auto (subscription when present), subscription, or api-key (default: auto)',
+    )
     .option('--concurrency <n>', 'Max parallel checks', '10')
     .option('-v, --verbose', 'Print completion summary to stderr')
     .addHelpText('after', HELP_TEXT)
@@ -174,6 +190,10 @@ async function main() {
     .option(
       '--available-tools <tools>',
       'Tools available in the session under test, comma-separated (grounds tool-availability judgments)',
+    )
+    .option(
+      '--auth <mode>',
+      'Credential preference: auto (subscription when present), subscription, or api-key (default: auto)',
     )
     .option('--concurrency <n>', 'Max parallel checks', '10')
     .option('-v, --verbose', 'Print completion summary to stderr')

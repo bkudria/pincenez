@@ -57,7 +57,15 @@ Examples:
   # Lint checks for quality anti-patterns
   pincenez lint checks.yaml
 
+  # Bill to the API key even when a Claude subscription is logged in
+  pincenez checks.yaml output.md --auth api-key
+
+Authentication:
+  Credentials come from the environment: a Claude subscription (Claude Code
+  login or CLAUDE_CODE_OAUTH_TOKEN) or ANTHROPIC_API_KEY. By default
+  (--auth auto) the subscription is preferred when both are present.
+
 Exit Codes:
   0   Ran successfully (regardless of check results)
-  1   Checks file error (invalid YAML, missing fields)
+  1   Config error (invalid YAML, missing fields, bad flag value)
   2   Runtime error (API failure, etc.)`;

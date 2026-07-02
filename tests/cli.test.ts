@@ -158,6 +158,27 @@ describe('gradeAction', () => {
     expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('string-error'));
   });
 
+  it('parses --auth option and forwards it to run', async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
+    mockRun.mockResolvedValue({ results: [], passRate: 1, costUsd: 0 });
+    const program = makeProgramStub();
+    await gradeAction('checks.yaml', 'output.md', { auth: 'subscription' }, program);
+    expect(mockRun).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ auth: 'subscription' }),
+    );
+  });
+
+  it('exits with code 1 on an invalid --auth value', async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
+    const program = makeProgramStub();
+    await gradeAction('checks.yaml', 'output.md', { auth: 'bogus' }, program);
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('invalid --auth mode'));
+    expect(mockRun).not.toHaveBeenCalled();
+  });
+
   it('parses --concurrency option and forwards as integer to run', async () => {
     mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
     mockRun.mockResolvedValue({ results: [], passRate: 1, costUsd: 0 });
@@ -266,6 +287,26 @@ describe('lintAction', () => {
     const lintCmd = makeProgramStub();
     await lintAction('checks.yaml', {}, lintCmd);
     expect(exitSpy).toHaveBeenCalledWith(2);
+  });
+
+  it('parses --auth option and forwards it to runLint', async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
+    mockRunLint.mockResolvedValue({ results: [], checksWithIssues: 0, costUsd: 0 });
+    const lintCmd = makeProgramStub();
+    await lintAction('checks.yaml', { auth: 'api-key' }, lintCmd);
+    expect(mockRunLint).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ auth: 'api-key' }),
+    );
+  });
+
+  it('exits with code 1 on an invalid --auth value during lint', async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
+    const lintCmd = makeProgramStub();
+    await lintAction('checks.yaml', { auth: 'bogus' }, lintCmd);
+    expect(exitSpy).toHaveBeenCalledWith(1);
+    expect(stderrSpy).toHaveBeenCalledWith(expect.stringContaining('invalid --auth mode'));
+    expect(mockRunLint).not.toHaveBeenCalled();
   });
 
   it('parses --concurrency option and forwards as integer to runLint', async () => {

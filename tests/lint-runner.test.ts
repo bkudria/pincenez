@@ -6,10 +6,17 @@ vi.mock('../src/linter.js', () => ({
   lintCheck: vi.fn(),
 }));
 
+// Mock auth env construction (real detection touches fs/keychain)
+vi.mock('../src/auth.js', () => ({
+  buildSdkEnv: vi.fn(() => ({ SENTINEL: 'sdk-env' })),
+}));
+
 import { lintCheck } from '../src/linter.js';
+import { buildSdkEnv } from '../src/auth.js';
 import { runLint } from '../src/lint-runner.js';
 
 const mockLintCheck = vi.mocked(lintCheck);
+const mockBuildSdkEnv = vi.mocked(buildSdkEnv);
 
 const checksFile: ChecksFile = {
   checks: [
@@ -29,6 +36,36 @@ describe('runLint', () => {
       stdoutChunks.push(chunk.toString());
       return true;
     });
+  });
+
+  it('resolves the SDK env once for the configured auth mode and passes it to every check', async () => {
+    mockLintCheck.mockImplementation(async (check) => ({
+      id: check.id,
+      check: check.check,
+      issues: [],
+      cost_usd: 0,
+    }));
+
+    await runLint(checksFile, { auth: 'api-key' });
+
+    expect(mockBuildSdkEnv).toHaveBeenCalledTimes(1);
+    expect(mockBuildSdkEnv).toHaveBeenCalledWith('api-key');
+    for (const call of mockLintCheck.mock.calls) {
+      expect(call[1]?.sdkEnv).toEqual({ SENTINEL: 'sdk-env' });
+    }
+  });
+
+  it('defaults the auth mode to auto', async () => {
+    mockLintCheck.mockImplementation(async (check) => ({
+      id: check.id,
+      check: check.check,
+      issues: [],
+      cost_usd: 0,
+    }));
+
+    await runLint(checksFile);
+
+    expect(mockBuildSdkEnv).toHaveBeenCalledWith('auto');
   });
 
   it('respects the concurrency limit when linting checks', async () => {

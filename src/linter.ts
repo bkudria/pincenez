@@ -71,6 +71,7 @@ export async function lintCheck(
     context?: string;
     availableTools?: string[];
     controller?: AbortController;
+    sdkEnv?: Record<string, string | undefined>;
   } = {},
 ): Promise<LintResult> {
   const model = options.model ?? DEFAULT_MODEL;
@@ -88,7 +89,7 @@ export async function lintCheck(
       prompt,
       options: {
         model,
-        env: { ...process.env, CLAUDECODE: undefined },
+        env: options.sdkEnv ?? { ...process.env, CLAUDECODE: undefined },
         tools: [],
         maxTurns: 10,
         permissionMode: 'bypassPermissions',

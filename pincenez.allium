@@ -11,15 +11,31 @@
 --   - Streaming output and aggregate reporting
 --   - Error semantics distinguishing check failure from grader/analyst error
 --   - CLI exit code contract
+--   - Credential selection: which credential (Claude subscription vs
+--     ANTHROPIC_API_KEY) the judge/analyst SDK subprocess authenticates with
 --
 -- Excludes:
---   - SDK call mechanics (env handling, persistSession, abort plumbing)
+--   - SDK call mechanics (persistSession, abort plumbing, and the CLAUDECODE
+--     unset that avoids nested-session failures). Credential selection is the
+--     one exception: which credential the SDK subprocess authenticates with is
+--     a behavioural concern, specified below via AuthMode, CredentialSelection
+--     and the once-per-run resolution on GradingRun / LintRun.
 --   - YAML serialization mechanics (block literals, indentation)
 --   - Concurrency pool implementation and the --concurrency flag
 --     (an operational knob; tunes parallelism, no behavioural meaning)
 --   - File I/O mechanics (stdin temp file lifecycle, path resolution)
 --   - Build/test infrastructure (TypeScript, Zod, vitest, ESLint)
 --   - Specific Anthropic model identifiers (treated as configuration)
+
+------------------------------------------------------------
+-- Given
+------------------------------------------------------------
+
+-- The invoking process environment, inspected once per run during
+-- credential resolution.
+given {
+    environment: Environment
+}
 
 ------------------------------------------------------------
 -- External Entities
@@ -59,6 +75,25 @@ external entity Output {
 -- Governed by: the OS shell environment; identity is the invoking process.
 external entity User {
     invocation_pid: Integer       -- present so the entity has identity
+}
+
+-- The invoking process environment pincenez inspects once per run to decide
+-- which credential the judge/analyst SDK subprocess authenticates with.
+-- Governed by: the OS shell environment, filesystem, and (on macOS) Keychain.
+--
+-- Subscription-credential detection is best-effort, checked in order, and
+-- short-circuits on the first hit:
+--   1. CLAUDE_CODE_OAUTH_TOKEN set to a non-blank value;
+--   2. a Claude Code credentials file at $CLAUDE_CONFIG_DIR/.credentials.json
+--      (or ~/.claude/.credentials.json when CLAUDE_CONFIG_DIR is unset) that
+--      parses as JSON and carries a claudeAiOauth key — an unreadable or
+--      unparseable file counts as absent;
+--   3. on macOS only, a Keychain generic password with service name
+--      "Claude Code-credentials" — a failed lookup counts as absent.
+external entity Environment {
+    has_api_key: Boolean          -- ANTHROPIC_API_KEY set and non-blank
+    has_api_credentials: Boolean  -- ANTHROPIC_API_KEY or ANTHROPIC_AUTH_TOKEN set
+    subscription_present: Boolean -- best-effort detection result (sources above)
 }
 
 ------------------------------------------------------------
@@ -283,6 +318,31 @@ enum AntiPattern {
   | error                        -- analyst itself errored on this check
 }
 
+-- The operator's credential preference, set by --auth (default auto when the
+-- flag is omitted). api_key corresponds to the --auth api-key CLI token.
+enum AuthMode {
+    auto                         -- prefer the subscription when it is detected
+                                 -- alongside API credentials, else forward the
+                                 -- environment unchanged
+  | subscription                 -- force the Claude subscription; withhold
+                                 -- API-key credentials from the subprocess
+  | api_key                      -- force ANTHROPIC_API_KEY; requires it to be set
+}
+
+-- How pincenez shapes the SDK subprocess environment, and hence which
+-- credential the subprocess authenticates with. The Agent SDK subprocess
+-- prefers ANTHROPIC_API_KEY over subscription OAuth, so pincenez selects a
+-- credential by withholding the ones it does not want.
+enum CredentialSelection {
+    subscription                 -- API-key variables (ANTHROPIC_API_KEY,
+                                 -- ANTHROPIC_AUTH_TOKEN) withheld from the
+                                 -- subprocess, so the subscription is used
+  | api_key                      -- CLAUDE_CODE_OAUTH_TOKEN withheld, the API
+                                 -- key retained, so the API key is used
+  | passthrough                  -- environment forwarded unchanged, apart from
+                                 -- the pre-existing CLAUDECODE unset
+}
+
 ------------------------------------------------------------
 -- Entities
 ------------------------------------------------------------
@@ -294,6 +354,9 @@ entity GradingRun {
     output: Output
     judge_default_model: String
     effective_context: String?    -- context override if any, else CheckSet.context
+    auth_mode: AuthMode           -- operator credential preference (--auth, default auto)
+    credential_selection: CredentialSelection  -- resolved once at run start; shared
+                                  -- by every per-check judge call in this run
     started_at: Timestamp
 
     status: in_progress | complete | aborted
@@ -328,6 +391,12 @@ entity GradingRun {
         for r in results:
             r.check in checkset.checks
     }
+
+    invariant CredentialSelectionMatchesMode {
+        (auth_mode = api_key implies credential_selection = api_key)
+        and (auth_mode = subscription implies credential_selection = subscription)
+        and (credential_selection = api_key implies auth_mode = api_key)
+    }
 }
 
 -- One Check's evaluation outcome within a GradingRun.
@@ -354,6 +423,9 @@ entity LintRun {
     analyst_default_model: String
     effective_context: String?
     available_tools: List<String>?
+    auth_mode: AuthMode           -- operator credential preference (--auth, default auto)
+    credential_selection: CredentialSelection  -- resolved once at run start; shared
+                                  -- by every per-check analyst call in this run
     started_at: Timestamp
 
     status: in_progress | complete | aborted
@@ -375,6 +447,12 @@ entity LintRun {
     }
 
     completed_at: Timestamp when status = complete | aborted
+
+    invariant CredentialSelectionMatchesMode {
+        (auth_mode = api_key implies credential_selection = api_key)
+        and (auth_mode = subscription implies credential_selection = subscription)
+        and (credential_selection = api_key implies auth_mode = api_key)
+    }
 }
 
 -- One Check's lint outcome within a LintRun.
@@ -408,23 +486,50 @@ rule StartGradingRun {
         output,
         model_flag?,
         context_flag?,
+        auth_flag?,
         verbose_flag?
     )
+
+    let auth_mode = auth_flag ?? auto
 
     requires: checkset.checks.count >= 1
     requires:
         for a in checkset.checks:
             for b in checkset.checks:
                 a != b implies a.id != b.id
+    requires: auth_mode = api_key implies environment.has_api_key
+
+    let credential_selection =
+        if auth_mode = api_key: api_key
+        else if auth_mode = subscription: subscription
+        else if environment.has_api_credentials and environment.subscription_present: subscription
+        else: passthrough
 
     ensures: GradingRun.created(
         checkset: checkset,
         output: output,
         judge_default_model: model_flag ?? config.default_grading_model,
         effective_context: context_flag ?? checkset.context,
+        auth_mode: auth_mode,
+        credential_selection: credential_selection,
         started_at: now,
         status: in_progress
     )
+
+    @guidance
+        -- Credential selection is resolved once here, at run start, and is
+        -- shared by every per-check judge call (scheduled by
+        -- SchedulePerCheckGrading). auth_flag comes from --auth and defaults
+        -- to auto. An invalid --auth value never reaches this rule: it is
+        -- rejected as a usage error before the CheckSet is loaded (see
+        -- GradeCommand.ExitCodeSemantics). api-key mode requires
+        -- ANTHROPIC_API_KEY (environment.has_api_key); the requires guard
+        -- rejects the run as a usage error otherwise. Subscription detection
+        -- (environment.subscription_present) is best-effort and consulted only
+        -- in auto mode when API credentials are present — the short-circuiting
+        -- and means detection is skipped when no API credentials are set, the
+        -- outcome being the same either way. See the Environment entity for the
+        -- ordered detection sources.
 }
 
 rule SchedulePerCheckGrading {
@@ -516,20 +621,32 @@ rule StartLintRun {
         model_flag?,
         context_flag?,
         available_tools_flag?,
+        auth_flag?,
         verbose_flag?
     )
+
+    let auth_mode = auth_flag ?? auto
 
     requires: checkset.checks.count >= 1
     requires:
         for a in checkset.checks:
             for b in checkset.checks:
                 a != b implies a.id != b.id
+    requires: auth_mode = api_key implies environment.has_api_key
+
+    let credential_selection =
+        if auth_mode = api_key: api_key
+        else if auth_mode = subscription: subscription
+        else if environment.has_api_credentials and environment.subscription_present: subscription
+        else: passthrough
 
     ensures: LintRun.created(
         checkset: checkset,
         analyst_default_model: model_flag ?? config.default_lint_model,
         effective_context: context_flag ?? checkset.context,
         available_tools: available_tools_flag,
+        auth_mode: auth_mode,
+        credential_selection: credential_selection,
         started_at: now,
         status: in_progress
     )
@@ -537,6 +654,17 @@ rule StartLintRun {
     @guidance
         -- Lint defaults to a stronger model than grading because
         -- anti-pattern detection requires subtler judgement.
+
+    @guidance
+        -- Credential selection is resolved once here, at run start, and is
+        -- shared by every per-check analyst call (scheduled by
+        -- SchedulePerCheckLint). Resolution mirrors StartGradingRun exactly:
+        -- auth_flag defaults to auto; api-key mode requires ANTHROPIC_API_KEY
+        -- via the requires guard (a usage error otherwise); subscription
+        -- detection is best-effort and consulted only in auto mode when API
+        -- credentials are present. See the Environment entity for the ordered
+        -- detection sources and GradeCommand.ExitCodeSemantics for the usage
+        -- errors.
 }
 
 rule SchedulePerCheckLint {
@@ -668,7 +796,7 @@ surface GradeCommand {
                 r.evidence
 
     provides:
-        GradeRequested(user, checkset, output, model_flag?, context_flag?, verbose_flag?)
+        GradeRequested(user, checkset, output, model_flag?, context_flag?, auth_flag?, verbose_flag?)
         for run in GradingRuns where status = in_progress:
             AbortGradingRequested(run)
 
@@ -689,7 +817,12 @@ surface GradeCommand {
 
     @guarantee ExitCodeSemantics
         -- The CLI exits 0 when a run reaches status = complete.
-        -- It exits 1 when the input CheckSet is invalid (parse or schema).
+        -- It exits 1 on an operator input error: an invalid CheckSet (parse or
+        -- schema), an invalid --auth value, or --auth api-key without a
+        -- non-blank ANTHROPIC_API_KEY. An invalid --auth value is rejected
+        -- before the CheckSet is loaded; the api-key precondition is the
+        -- requires guard on StartGradingRun. These are usage errors, distinct
+        -- from check outcomes.
         -- It exits 2 when an unhandled error prevents the run from reaching
         -- status = complete or aborted.
         -- It exits 130 when AbortGradingRequested fires (SIGINT).
@@ -727,7 +860,7 @@ surface LintCommand {
                 r.issues
 
     provides:
-        LintRequested(user, checkset, model_flag?, context_flag?, available_tools_flag?, verbose_flag?)
+        LintRequested(user, checkset, model_flag?, context_flag?, available_tools_flag?, auth_flag?, verbose_flag?)
         for run in LintRuns where status = in_progress:
             AbortLintRequested(run)
 
@@ -746,7 +879,10 @@ surface LintCommand {
         -- longer than 80 columns.
 
     @guarantee ExitCodeSemantics
-        -- Same exit code taxonomy as GradeCommand.
+        -- Same exit code taxonomy as GradeCommand, including the --auth usage
+        -- errors that exit 1: an invalid --auth value (rejected before the
+        -- CheckSet is loaded) and --auth api-key without a non-blank
+        -- ANTHROPIC_API_KEY (the requires guard on StartLintRun).
         -- A LintResult with anti_pattern = error does not affect the exit
         -- code; it is the analyst-level analogue of verdict = errored.
 
@@ -771,6 +907,16 @@ surface JudgeIntegration {
     @guarantee NoCrossContamination
         -- Each grade invocation is fully independent. The integration must
         -- not share state, prompt, or context across calls.
+
+    @guarantee SharedCredentialSelection
+        -- Every grade invocation in a run is made under that run's
+        -- credential_selection, resolved once at run start. Credential
+        -- detection (filesystem and, on macOS, Keychain probing) happens at
+        -- most once per run, never per check. Sharing the credential
+        -- selection does not couple verdicts: it shapes only which credential
+        -- authenticates the subprocess, not the judgement. The parent
+        -- process.env is never mutated; shaping applies to the subprocess env
+        -- only.
 }
 
 -- The integration boundary with the lint analyst LLM.
@@ -779,5 +925,12 @@ surface LintAnalystIntegration {
 
     contracts:
         fulfils LintAnalyst
+
+    @guarantee SharedCredentialSelection
+        -- Every analyse invocation in a run is made under that run's
+        -- credential_selection, resolved once at run start. Credential
+        -- detection (filesystem and, on macOS, Keychain probing) happens at
+        -- most once per run, never per check. The parent process.env is never
+        -- mutated; shaping applies to the subprocess env only.
 }
 

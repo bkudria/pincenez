@@ -2,6 +2,9 @@ import { z } from 'zod';
 import type { SDKResultError } from '@anthropic-ai/claude-agent-sdk';
 import { EXIT_CONFIG_ERROR, EXIT_RUNTIME_ERROR } from './exit-codes.js';
 
+/** Operator misconfiguration (bad flag value, missing required env) — exits EXIT_CONFIG_ERROR. */
+export class UsageError extends Error {}
+
 export function formatCliError(err: unknown): string {
   if (err instanceof z.ZodError) {
     return `[pincenez] Checks file error: ${err.message}`;
@@ -10,7 +13,9 @@ export function formatCliError(err: unknown): string {
 }
 
 export function cliExitCode(err: unknown): number {
-  return err instanceof z.ZodError ? EXIT_CONFIG_ERROR : EXIT_RUNTIME_ERROR;
+  return err instanceof z.ZodError || err instanceof UsageError
+    ? EXIT_CONFIG_ERROR
+    : EXIT_RUNTIME_ERROR;
 }
 
 export function formatSdkError(

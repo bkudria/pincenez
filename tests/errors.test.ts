@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { formatCliError, cliExitCode, formatSdkError } from '../src/errors.js';
+import { formatCliError, cliExitCode, formatSdkError, UsageError } from '../src/errors.js';
 import { EXIT_CONFIG_ERROR, EXIT_RUNTIME_ERROR } from '../src/exit-codes.js';
 
 describe('formatCliError', () => {
@@ -35,6 +35,10 @@ describe('cliExitCode', () => {
     expect(result.success).toBe(false);
     if (result.success) return;
     expect(cliExitCode(result.error)).toBe(EXIT_CONFIG_ERROR);
+  });
+
+  it('returns EXIT_CONFIG_ERROR for a UsageError', () => {
+    expect(cliExitCode(new UsageError('bad flag'))).toBe(EXIT_CONFIG_ERROR);
   });
 
   it('returns EXIT_RUNTIME_ERROR for a generic Error', () => {
