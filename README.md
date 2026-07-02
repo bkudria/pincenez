@@ -28,11 +28,20 @@ scuttlerun and pincenez compose by pipe — `scuttlerun session.yaml | pincenez 
 ### Prerequisites
 
 - **Node.js 20** or later (CI tests on 20, 22, 24).
-- **`ANTHROPIC_API_KEY`** exported in your environment. Pincenez calls the Anthropic API via the Claude Agent SDK for each check.
+- **Anthropic credentials** — either a Claude subscription (a Claude Code login, or a `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`) or an `ANTHROPIC_API_KEY` exported in your environment. Pincenez calls Claude via the Claude Agent SDK for each check.
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+claude /login                        # Claude subscription (Pro/Max), or:
+export ANTHROPIC_API_KEY=sk-ant-...  # direct API billing
 ```
+
+When both are available, pincenez prefers the subscription: it withholds the API-key variables from the SDK subprocess so checks don't bill per-token. Override with `--auth`:
+
+| Mode                    | Behavior                                                                                     |
+| ----------------------- | -------------------------------------------------------------------------------------------- |
+| `--auth auto` (default) | Prefer the subscription when one is detected; otherwise use the API key                      |
+| `--auth subscription`   | Always withhold API-key variables; requires a Claude Code login or `CLAUDE_CODE_OAUTH_TOKEN` |
+| `--auth api-key`        | Require `ANTHROPIC_API_KEY` (exit 1 if unset) and ignore any `CLAUDE_CODE_OAUTH_TOKEN`       |
 
 See [SECURITY.md](SECURITY.md#privacy--data-flow) for what gets sent off your machine on each run.
 
@@ -134,14 +143,15 @@ pincenez examples/haiku/checks.yaml examples/haiku/transcript.yaml
 pincenez [options] <checks.yaml> [output]
 ```
 
-| Option              | Description                                                     |
-| ------------------- | --------------------------------------------------------------- |
-| `--model <model>`   | LLM judge model (default: claude-haiku-4-5)                     |
-| `--context <text>`  | Override the checks file's context field (replaces it entirely) |
-| `--concurrency <n>` | Max parallel checks (default: 10)                               |
-| `--verbose`         | Include verbose output on stderr                                |
-| `-V, --version`     | Show version                                                    |
-| `-h, --help`        | Show help with full checks file schema reference                |
+| Option              | Description                                                           |
+| ------------------- | --------------------------------------------------------------------- |
+| `--model <model>`   | LLM judge model (default: claude-haiku-4-5)                           |
+| `--context <text>`  | Override the checks file's context field (replaces it entirely)       |
+| `--auth <mode>`     | Credential preference: `auto` (default), `subscription`, or `api-key` |
+| `--concurrency <n>` | Max parallel checks (default: 10)                                     |
+| `--verbose`         | Include verbose output on stderr                                      |
+| `-V, --version`     | Show version                                                          |
+| `-h, --help`        | Show help with full checks file schema reference                      |
 
 ### Lint
 
@@ -152,7 +162,7 @@ pincenez lint checks.yaml
 pincenez lint checks.yaml --context "The prompt that produced this output"
 ```
 
-Detects 7 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific, unfalsifiable. Accepts the same `--model`, `--context`, and `--concurrency` flags as grading; lint's default model is `claude-sonnet-5` (vs grading's `claude-haiku-4-5`).
+Detects 7 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific, unfalsifiable. Accepts the same `--model`, `--context`, `--auth`, and `--concurrency` flags as grading; lint's default model is `claude-sonnet-5` (vs grading's `claude-haiku-4-5`).
 
 Output (streamed YAML, arrival order):
 
@@ -178,12 +188,12 @@ Lint findings are advisory and non-deterministic — re-running may add or drop 
 
 Subset of the shared scuttlerun/pincenez/craboodle taxonomy — see [scuttlerun/README.md#exit-codes](https://github.com/bkudria/scuttlerun#exit-codes) for the canonical table. Source: [`src/exit-codes.ts`](src/exit-codes.ts).
 
-| Code | Meaning                                                     |
-| ---- | ----------------------------------------------------------- |
-| 0    | Ran successfully (regardless of check results)              |
-| 1    | Checks file error (invalid YAML, missing fields)            |
-| 2    | Runtime error (SDK failure, API error, unhandled exception) |
-| 130  | Interrupted (SIGINT)                                        |
+| Code | Meaning                                                                                                     |
+| ---- | ----------------------------------------------------------------------------------------------------------- |
+| 0    | Ran successfully (regardless of check results)                                                              |
+| 1    | Config error (invalid checks YAML, missing fields, bad `--auth` value, `--auth api-key` without an API key) |
+| 2    | Runtime error (SDK failure, API error, unhandled exception)                                                 |
+| 130  | Interrupted (SIGINT)                                                                                        |
 
 `lint` follows the same taxonomy and does not signal issue presence through its exit code: a clean run is 0 whether or not any checks have issues. Detect issues by parsing the `checks_with_issues` summary field.
 

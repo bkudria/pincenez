@@ -486,4 +486,13 @@ describe('gradeCheck', () => {
     delete process.env.CLAUDECODE;
     delete process.env.PINCENEZ_TEST_VAR;
   });
+
+  it('passes options.sdkEnv to query() verbatim when provided', async () => {
+    mockQuery.mockReturnValue(asyncMessages([resultMessage('{"pass": true, "evidence": "ok"}')]));
+
+    const sdkEnv = { ANTHROPIC_API_KEY: undefined, HOME: '/home/user' };
+    await gradeCheck(testCheck, '/tmp/out.md', { sdkEnv });
+
+    expect(mockQuery.mock.calls[0]?.[0]?.options?.env).toBe(sdkEnv);
+  });
 });

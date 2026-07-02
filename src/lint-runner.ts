@@ -1,6 +1,7 @@
 import pLimit from 'p-limit';
 import { stringify as yamlStringify } from 'yaml';
 import type { ChecksFile } from './config.js';
+import { buildSdkEnv, type AuthMode } from './auth.js';
 import { lintCheck, type LintResult } from './linter.js';
 import { LINE_WIDTH, writeYamlArrayItem } from './yaml-utils.js';
 
@@ -10,6 +11,7 @@ export interface LintRunOptions {
   availableTools?: string[];
   controller?: AbortController;
   concurrency?: number;
+  auth?: AuthMode;
 }
 
 const DEFAULT_CONCURRENCY = 10;
@@ -25,6 +27,9 @@ export async function runLint(
   const context = options.context ?? checksFile.context;
   const results: LintResult[] = [];
 
+  // Resolve credentials once per run — detection may consult the filesystem or Keychain
+  const sdkEnv = buildSdkEnv(options.auth ?? 'auto');
+
   // Write YAML array header immediately
   process.stdout.write('checks:\n');
 
@@ -38,6 +43,7 @@ export async function runLint(
         context,
         availableTools: options.availableTools,
         controller: options.controller,
+        sdkEnv,
       }).then((result) => {
         results.push(result);
         writeYamlArrayItem({

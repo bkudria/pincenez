@@ -7,10 +7,17 @@ vi.mock('../src/grader.js', () => ({
   gradeCheck: vi.fn(),
 }));
 
+// Mock auth env construction (real detection touches fs/keychain)
+vi.mock('../src/auth.js', () => ({
+  buildSdkEnv: vi.fn(() => ({ SENTINEL: 'sdk-env' })),
+}));
+
 import { gradeCheck } from '../src/grader.js';
+import { buildSdkEnv } from '../src/auth.js';
 import { run } from '../src/runner.js';
 
 const mockGrade = vi.mocked(gradeCheck);
+const mockBuildSdkEnv = vi.mocked(buildSdkEnv);
 
 function makeChecksFile(overrides: Partial<ChecksFile> = {}): ChecksFile {
   return {
@@ -56,6 +63,26 @@ describe('run', () => {
 
   afterEach(() => {
     writeSpy.mockRestore();
+  });
+
+  it('resolves the SDK env once for the configured auth mode and passes it to every check', async () => {
+    mockGrade.mockImplementation(async (check) => makeResult(check.id, true));
+
+    await run(makeChecksFile(), '/tmp/out.md', { auth: 'subscription' });
+
+    expect(mockBuildSdkEnv).toHaveBeenCalledTimes(1);
+    expect(mockBuildSdkEnv).toHaveBeenCalledWith('subscription');
+    for (const call of mockGrade.mock.calls) {
+      expect(call[2]?.sdkEnv).toEqual({ SENTINEL: 'sdk-env' });
+    }
+  });
+
+  it('defaults the auth mode to auto', async () => {
+    mockGrade.mockResolvedValue(makeResult('a1', true));
+
+    await run({ checks: [{ id: 'a1', check: 'c' }] }, '/tmp/out.md');
+
+    expect(mockBuildSdkEnv).toHaveBeenCalledWith('auto');
   });
 
   it('writes checks header first', async () => {
