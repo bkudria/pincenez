@@ -58,7 +58,7 @@ pincenez checks.yaml output.md
 scuttlerun session.yaml | pincenez checks.yaml
 
 # Use a stronger model for all checks
-pincenez checks.yaml output.md --model claude-sonnet-4-6
+pincenez checks.yaml output.md --model claude-sonnet-5
 ```
 
 ## Checks File Schema
@@ -79,7 +79,7 @@ checks:
   - tests-validate:
       check: "At least one test case validates the function's behavior"
       note: 'The test should actually exercise the function, not just import it'
-      model: claude-sonnet-4-6
+      model: claude-sonnet-5
 ```
 
 ### Field Reference
@@ -152,7 +152,7 @@ pincenez lint checks.yaml
 pincenez lint checks.yaml --context "The prompt that produced this output"
 ```
 
-Detects 7 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific, unfalsifiable. Accepts the same `--model`, `--context`, and `--concurrency` flags as grading; lint's default model is `claude-sonnet-4-6` (vs grading's `claude-haiku-4-5`).
+Detects 7 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific, unfalsifiable. Accepts the same `--model`, `--context`, and `--concurrency` flags as grading; lint's default model is `claude-sonnet-5` (vs grading's `claude-haiku-4-5`).
 
 Output (streamed YAML, arrival order):
 

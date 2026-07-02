@@ -10,7 +10,7 @@ checks:
   - my-check:
       check: "the thing happened"
       note: "look carefully"
-      model: claude-sonnet-4-5
+      model: claude-sonnet-5
 `;
     const checksFile = parseChecksFile(yaml);
     expect(checksFile.context).toBe('some context');
@@ -19,7 +19,7 @@ checks:
       id: 'my-check',
       check: 'the thing happened',
       note: 'look carefully',
-      model: 'claude-sonnet-4-5',
+      model: 'claude-sonnet-5',
     });
   });
 

@@ -130,6 +130,18 @@ describe('lintCheck', () => {
     );
   });
 
+  it('defaults to claude-sonnet-5 when no model is provided', async () => {
+    mockQuery.mockReturnValue(asyncMessages([resultMessage('{"issues": []}')]));
+
+    await lintCheck(testCheck);
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ model: 'claude-sonnet-5' }),
+      }),
+    );
+  });
+
   it('returns LintResult with issues on success', async () => {
     mockQuery.mockReturnValue(
       asyncMessages([
