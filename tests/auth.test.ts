@@ -170,7 +170,11 @@ describe('buildSdkEnv', () => {
       buildSdkEnv('auto', { CLAUDE_CODE_OAUTH_TOKEN: 'tok', ANTHROPIC_API_KEY: 'sk' }, 'linux'),
     ).not.toThrow();
     expect(() =>
-      buildSdkEnv('auto', { CLAUDE_CODE_OAUTH_TOKEN: 'tok', CLAUDE_SDK_OAUTH_TOKEN: 'sdk' }, 'linux'),
+      buildSdkEnv(
+        'auto',
+        { CLAUDE_CODE_OAUTH_TOKEN: 'tok', CLAUDE_SDK_OAUTH_TOKEN: 'sdk' },
+        'linux',
+      ),
     ).not.toThrow();
 
     mockExistsSync.mockReturnValue(true);
