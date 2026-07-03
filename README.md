@@ -28,7 +28,7 @@ scuttlerun and pincenez compose by pipe — `scuttlerun session.yaml | pincenez 
 ### Prerequisites
 
 - **Node.js 20** or later (CI tests on 20, 22, 24).
-- **Anthropic credentials** — either a Claude subscription (a Claude Code login, or a `CLAUDE_CODE_OAUTH_TOKEN` from `claude setup-token`) or an `ANTHROPIC_API_KEY` exported in your environment. Pincenez calls Claude via the Claude Agent SDK for each check.
+- **Anthropic credentials** — either a Claude subscription (a Claude Code login, or a `CLAUDE_SDK_OAUTH_TOKEN` holding a token from `claude setup-token`) or an `ANTHROPIC_API_KEY` exported in your environment. Pincenez calls Claude via the Claude Agent SDK for each check.
 
 ```bash
 claude /login                        # Claude subscription (Pro/Max), or:
@@ -40,8 +40,10 @@ When both are available, pincenez prefers the subscription: it withholds the API
 | Mode                    | Behavior                                                                                     |
 | ----------------------- | -------------------------------------------------------------------------------------------- |
 | `--auth auto` (default) | Prefer the subscription when one is detected; otherwise use the API key                      |
-| `--auth subscription`   | Always withhold API-key variables; requires a Claude Code login or `CLAUDE_CODE_OAUTH_TOKEN` |
-| `--auth api-key`        | Require `ANTHROPIC_API_KEY` (exit 1 if unset) and ignore any `CLAUDE_CODE_OAUTH_TOKEN`       |
+| `--auth subscription`   | Always withhold API-key variables; requires a Claude Code login or `CLAUDE_SDK_OAUTH_TOKEN`  |
+| `--auth api-key`        | Require `ANTHROPIC_API_KEY` (exit 1 if unset) and ignore any OAuth token variable            |
+
+Pincenez never uses `CLAUDE_CODE_OAUTH_TOKEN`. The Claude Code runtime lets that variable override a `/login` credential, so pincenez strips it from the SDK subprocess — a stray export can't silently hijack grading runs. To hand pincenez a token explicitly (CI, headless machines), set `CLAUDE_SDK_OAUTH_TOKEN` instead; it wins over `/login` credentials. If `CLAUDE_CODE_OAUTH_TOKEN` is the only credential in the environment, pincenez exits 1 with guidance rather than failing opaquely.
 
 See [SECURITY.md](SECURITY.md#privacy--data-flow) for what gets sent off your machine on each run.
 

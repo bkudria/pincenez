@@ -62,8 +62,11 @@ Examples:
 
 Authentication:
   Credentials come from the environment: a Claude subscription (Claude Code
-  login or CLAUDE_CODE_OAUTH_TOKEN) or ANTHROPIC_API_KEY. By default
+  login or CLAUDE_SDK_OAUTH_TOKEN) or ANTHROPIC_API_KEY. By default
   (--auth auto) the subscription is preferred when both are present.
+  CLAUDE_CODE_OAUTH_TOKEN is never used: pincenez strips it from the SDK
+  subprocess so a stray export cannot override your claude /login
+  credentials. If it is the only credential available, pincenez exits 1.
 
 Exit Codes:
   0   Ran successfully (regardless of check results)
