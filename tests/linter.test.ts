@@ -214,8 +214,7 @@ describe('lintCheck', () => {
 
     const callArgs = mockQuery.mock.calls[0][0];
     const outputFormat = callArgs.options?.outputFormat as
-      | { type: 'json_schema'; schema: Record<string, unknown> }
-      | undefined;
+      { type: 'json_schema'; schema: Record<string, unknown> } | undefined;
     const schema = outputFormat?.schema as {
       properties: {
         issues: {
