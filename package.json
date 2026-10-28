@@ -1,6 +1,6 @@
 {
   "name": "pincenez",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Grade LLM outputs against checks files using an LLM judge",
   "keywords": [
     "llm",
