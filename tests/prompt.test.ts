@@ -46,43 +46,31 @@ describe('buildGraderSystemPrompt', () => {
     expect(skillIndex).toBeGreaterThan(awarenessIndex);
   });
 
-  it('documents the transcript field contract (lossy tool entries)', () => {
+  it("tells the grader to follow the transcript's own legend instead of a copy of it", () => {
     const sys = buildGraderSystemPrompt();
-    expect(sys).toContain('## Transcript Field Contract');
-    // Content-bearing fields are dropped for Read/Write/Edit; only path survives.
-    expect(sys).toContain('old_string');
-    expect(sys).toContain('new_string');
-    expect(sys).toMatch(/dropped/i);
-    expect(sys).toContain('path');
-    // Other known tools' recorded fields.
-    expect(sys).toContain('command');
-    expect(sys).toContain('pattern');
-    // Unknown tools keep their full input.
-    expect(sys).toMatch(/verbatim/i);
-    // Full inputs live in the SDK JSONL, not the YAML transcript.
-    expect(sys).toContain('JSONL');
+    const legendIndex = sys.indexOf('## Transcript Legend');
+    expect(legendIndex).toBeGreaterThan(-1);
+    expect(sys.slice(legendIndex)).toContain('legend:');
+    expect(sys.slice(legendIndex)).toMatch(/authoritative/i);
+    // No per-tool field list or hard-coded claims about what transcripts omit.
+    expect(sys).not.toContain('old_string');
+    expect(sys).not.toMatch(/hook/i);
+    expect(sys).not.toMatch(/slash/i);
   });
 
-  it('tells the grader how to fail content-assertions the transcript cannot support', () => {
+  it('gives the grader a generic fallback when the output has no legend', () => {
     const sys = buildGraderSystemPrompt();
-    const contractIndex = sys.indexOf('## Transcript Field Contract');
-    expect(contractIndex).toBeGreaterThan(-1);
-    // The guidance must say content cannot be verified from the transcript alone.
-    expect(sys.slice(contractIndex)).toMatch(/cannot be verified/i);
-    expect(sys.slice(contractIndex)).toMatch(/by design/i);
+    const legendSection = sys.slice(sys.indexOf('## Transcript Legend'));
+    expect(legendSection).toMatch(/without a legend/i);
+    expect(legendSection).toMatch(/no assumption/i);
   });
 
-  it('tells the grader where slash commands and hooks appear (or do not appear) in transcripts', () => {
-    const sys = buildGraderSystemPrompt();
-    expect(sys).toContain('slash');
-    expect(sys).toMatch(/hook/i);
-    expect(sys).toMatch(/side effect|side-effect/i);
-    const awarenessIndex = sys.indexOf('## Transcript Awareness');
-    const slashIndex = sys.search(/slash/i);
-    const hookIndex = sys.search(/hook/i);
-    expect(awarenessIndex).toBeGreaterThan(-1);
-    expect(slashIndex).toBeGreaterThan(awarenessIndex);
-    expect(hookIndex).toBeGreaterThan(awarenessIndex);
+  it('tells the grader to fail checks whose evidence the legend says is dropped or not recorded', () => {
+    const legendSection = buildGraderSystemPrompt().slice(
+      buildGraderSystemPrompt().indexOf('## Transcript Legend'),
+    );
+    expect(legendSection).toMatch(/dropped or not recorded/i);
+    expect(legendSection).toMatch(/cannot be verified/i);
   });
 });
 

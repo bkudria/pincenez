@@ -189,6 +189,16 @@ describe('lintCheck', () => {
     expect(callArgs.prompt).toContain('## Session Tool Configuration');
   });
 
+  it('threads transcriptLegend into the user prompt', async () => {
+    mockQuery.mockReturnValue(asyncMessages([resultMessage('{"issues": []}')]));
+
+    await lintCheck(testCheck, { transcriptLegend: 'footer:\n  timed_out: hit timeout\n' });
+
+    const callArgs = mockQuery.mock.calls[0][0];
+    expect(callArgs.prompt).toContain('## Transcript Legend');
+    expect(callArgs.prompt).toContain('timed_out: hit timeout');
+  });
+
   it('passes outputFormat with json_schema and sufficient maxTurns to query', async () => {
     mockQuery.mockReturnValue(asyncMessages([resultMessage('{"issues": []}')]));
 

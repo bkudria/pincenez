@@ -70,12 +70,18 @@ export async function lintCheck(
     model?: string;
     context?: string;
     availableTools?: string[];
+    transcriptLegend?: string;
     controller?: AbortController;
     sdkEnv?: Record<string, string | undefined>;
   } = {},
 ): Promise<LintResult> {
   const model = options.model ?? DEFAULT_MODEL;
-  const prompt = buildLintUserPrompt(check, options.context, options.availableTools);
+  const prompt = buildLintUserPrompt(
+    check,
+    options.context,
+    options.availableTools,
+    options.transcriptLegend,
+  );
 
   try {
     let resultText = '';

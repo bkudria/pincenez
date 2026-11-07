@@ -187,28 +187,25 @@ contract Judge {
         --     sub-agent was dispatched.
         --   - tool: mcp__<server>__<tool> indicates the MCP tool was
         --     called.
-        -- Slash-command invocations are not separate transcript entries;
-        -- they appear as the prefix of the first user: message. Hooks
-        -- do not appear as transcript entries at all and are observable
-        -- only via their side effects (file mutations, blocked tool
-        -- calls, hook stdout). This complements the unverifiable enum
-        -- comment below: what is observable to the analyst is also
-        -- observable to the judge.
+        -- This complements the unverifiable enum comment below: what is
+        -- observable to the analyst is also observable to the judge.
 
     @guidance
-        -- The judge is oriented to the transcript field contract:
-        -- scuttlerun YAML transcripts record tool calls lossily, keeping
-        -- only a small set of identifying fields per known tool (e.g.
-        -- path for Read/Write/Edit, command for Bash, pattern for
-        -- Glob/Grep) and dropping content-bearing fields (content,
-        -- old_string, new_string) before serialization; unknown tools
-        -- keep their full input verbatim. A check asserting on written
-        -- content cannot be verified from the transcript alone — absent
-        -- another evidence source, the judge fails it explaining the
-        -- transcript records only the path by design. This orientation
-        -- mirrors scuttlerun.allium's @guarantee
-        -- TranscriptToolFieldContract and must be updated in lockstep
-        -- when that contract changes.
+        -- The judge takes what a transcript records from the transcript
+        -- itself: a scuttlerun transcript's header carries a legend:
+        -- mapping (scuttlerun.allium's @guarantee
+        -- SelfDescribingTranscript) saying what each entry kind records,
+        -- which fields each tool entry keeps, what the transcript leaves
+        -- out and what the footer flags mean, and the judge treats it as
+        -- authoritative. pincenez embeds no copy of it, so a change to
+        -- the transcript format needs no change here. A check whose
+        -- evidence the legend says is dropped or not recorded cannot be
+        -- verified from the transcript alone; absent another evidence
+        -- source, the judge fails it, explaining that the transcript
+        -- does not record that evidence by design. Without a legend, the
+        -- judge assumes nothing about what the output records beyond
+        -- what it visibly contains, and fails a check whose evidence the
+        -- output may simply not capture, saying what is missing.
 
     @guidance
         -- Verdicts are non-deterministic. Each grade call produces a
@@ -225,7 +222,8 @@ contract LintAnalyst {
         check: Check,
         model: String,
         context: String?,
-        available_tools: List<String>?
+        available_tools: List<String>?,
+        transcript_legend: String?
     ) -> LintResponse
 
     @invariant Independence
@@ -273,15 +271,23 @@ contract LintAnalyst {
         -- knowledge about which tools exist. Without the list, the
         -- analyst makes no claims about tool availability.
 
+    @invariant TranscriptLegendGrounding
+        -- When transcript_legend is provided (the legend: block of the
+        -- transcript the checks will grade), it is the authoritative
+        -- description of what that transcript records. A Check whose
+        -- evidence the legend says is dropped or not recorded warrants
+        -- unverifiable unless it names another observable evidence
+        -- source. Without a legend, the analyst makes no claims about
+        -- what the transcript records or omits.
+
     @invariant NoUngradeableSuggestions
         -- A suggested rewrite must be gradeable from the evidence the
-        -- transcript records. The analyst is oriented to the transcript
-        -- field contract (see Judge guidance; mirrors scuttlerun.allium's
-        -- @guarantee TranscriptToolFieldContract) and never suggests
-        -- asserting on dropped fields (e.g. content written by
-        -- Write/Edit). A Check that already depends on dropped fields
-        -- warrants unverifiable, with a suggestion targeting a recorded
-        -- field or another observable evidence source.
+        -- transcript records. The analyst never suggests asserting on
+        -- evidence the transcript legend says is dropped or not
+        -- recorded (e.g. content written by Write/Edit). A Check that
+        -- already depends on such evidence warrants unverifiable, with a
+        -- suggestion targeting a recorded field or another observable
+        -- evidence source.
 
     @guidance
         -- Findings are non-deterministic, advisory judgments. Each
@@ -437,6 +443,7 @@ entity LintRun {
     analyst_default_model: String
     effective_context: String?
     available_tools: List<String>?
+    transcript_legend: String?
     auth_mode: AuthMode           -- operator credential preference (--auth, default auto)
     credential_selection: CredentialSelection  -- resolved once at run start; shared
                                   -- by every per-check analyst call in this run
@@ -644,6 +651,7 @@ rule StartLintRun {
         model_flag?,
         context_flag?,
         available_tools_flag?,
+        transcript_legend_flag?,
         auth_flag?,
         verbose_flag?
     )
@@ -671,6 +679,7 @@ rule StartLintRun {
         analyst_default_model: model_flag ?? config.default_lint_model,
         effective_context: context_flag ?? checkset.context,
         available_tools: available_tools_flag,
+        transcript_legend: transcript_legend_flag,
         auth_mode: auth_mode,
         credential_selection: credential_selection,
         started_at: now,
@@ -702,16 +711,17 @@ rule SchedulePerCheckLint {
             check: check,
             model: run.analyst_default_model,
             context: run.effective_context,
-            available_tools: run.available_tools
+            available_tools: run.available_tools,
+            transcript_legend: run.transcript_legend
         )
 }
 
 rule LintCheck {
-    when: CheckLintRequested(run, check, model, context?, available_tools?)
+    when: CheckLintRequested(run, check, model, context?, available_tools?, transcript_legend?)
 
     requires: run.status = in_progress
 
-    let response = analyse(check, model, context, available_tools)
+    let response = analyse(check, model, context, available_tools, transcript_legend)
 
     ensures: LintResult.created(
         run: run,
@@ -889,7 +899,7 @@ surface LintCommand {
                 r.issues
 
     provides:
-        LintRequested(user, checkset, model_flag?, context_flag?, available_tools_flag?, auth_flag?, verbose_flag?)
+        LintRequested(user, checkset, model_flag?, context_flag?, available_tools_flag?, transcript_legend_flag?, auth_flag?, verbose_flag?)
         for run in LintRuns where status = in_progress:
             AbortLintRequested(run)
 

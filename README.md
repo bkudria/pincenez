@@ -164,7 +164,7 @@ pincenez lint checks.yaml
 pincenez lint checks.yaml --context "The prompt that produced this output"
 ```
 
-Detects 7 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific, unfalsifiable. Accepts the same `--model`, `--context`, `--auth`, and `--concurrency` flags as grading; lint's default model is `claude-sonnet-5` (vs grading's `claude-haiku-4-5`).
+Detects 7 anti-patterns: vague, compound, tautological, always_passes, unverifiable, over_specific, unfalsifiable. Accepts the same `--model`, `--context`, `--auth`, and `--concurrency` flags as grading; lint's default model is `claude-sonnet-5` (vs grading's `claude-haiku-4-5`). Two more flags ground lint in the session under test: `--available-tools` lists the tools it can call, and `--transcript-legend` takes the `legend:` block of the transcript it will produce (craboodle passes both from `scuttlerun --dry-run`). Without a legend, lint makes no claims about what the transcript records or leaves out.
 
 Output (streamed YAML, arrival order):
 

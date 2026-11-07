@@ -101,6 +101,7 @@ export async function lintAction(
     model?: string;
     context?: string;
     availableTools?: string;
+    transcriptLegend?: string;
     verbose?: boolean;
     concurrency?: string;
     auth?: string;
@@ -133,6 +134,7 @@ export async function lintAction(
             .map((t) => t.trim())
             .filter((t) => t.length > 0)
         : undefined,
+      transcriptLegend: opts.transcriptLegend,
       controller,
       concurrency: opts.concurrency ? parseInt(opts.concurrency, 10) : undefined,
       auth,
@@ -190,6 +192,10 @@ async function main() {
     .option(
       '--available-tools <tools>',
       'Tools available in the session under test, comma-separated (grounds tool-availability judgments)',
+    )
+    .option(
+      '--transcript-legend <yaml>',
+      'The legend: block of the transcript under test (grounds what the transcript records)',
     )
     .option(
       '--auth <mode>',
