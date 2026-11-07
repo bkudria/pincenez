@@ -7,18 +7,6 @@ and dialogs on 2026-11-04 and the fabrica eval suite written the same day;
 scuttlerun's IDEAS.md holds the transcript changes these pair with. Not
 ordered by priority.
 
-- **Honour the transcript's own contract instead of mirroring it.** The grader
-  and lint prompts embed a hand-maintained copy of scuttlerun's transcript
-  field contract plus hard-coded claims that hooks and slash commands never
-  appear; every new entry kind in scuttlerun (hook events, permission
-  decisions, tool results, plan approval) costs an edit here in lockstep, and
-  the claim about hooks is about to become false. Shape: when the output
-  carries its own `legend:` section (scuttlerun will write one from a single
-  pinned table), the prompts say only to honour it, and the mirror and the
-  hook and slash prose go; the plain-text non-goal holds, since the judge
-  reads the legend as text. Lint run standalone without craboodle loses the
-  contract unless given it, so it keeps a weaker generic fallback. Lands when
-  scuttlerun emits the legend.
 - **State the judge's file-reading channel.** The ReadOnlyAccess invariant
   already lets the judge read the output and the files it references, the
   grader grants the output's directory, and the prompt says so; but `--help`
