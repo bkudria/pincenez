@@ -9,6 +9,7 @@ export interface LintRunOptions {
   model?: string;
   context?: string;
   availableTools?: string[];
+  transcriptLegend?: string;
   controller?: AbortController;
   concurrency?: number;
   auth?: AuthMode;
@@ -42,6 +43,7 @@ export async function runLint(
         model: options.model,
         context,
         availableTools: options.availableTools,
+        transcriptLegend: options.transcriptLegend,
         controller: options.controller,
         sdkEnv,
       }).then((result) => {

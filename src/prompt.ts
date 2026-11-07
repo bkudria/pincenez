@@ -24,21 +24,14 @@ export function buildGraderUserPrompt(check: Check, outputPath: string, context?
   return parts.join('\n');
 }
 
-/**
- * Shared between the grader and lint system prompts. Mirrors scuttlerun's
- * `@guarantee TranscriptToolFieldContract` (scuttlerun.allium) — if scuttlerun
- * changes the captured fields, this section must be updated in lockstep.
- */
-export function buildTranscriptFieldContractSection(): string {
+function buildTranscriptLegendSection(): string {
   return [
-    `## Transcript Field Contract`,
+    `## Transcript Legend`,
     ``,
-    `When the output is a scuttlerun YAML transcript, tool-call entries are intentionally lossy: each known tool records only a small set of identifying fields, and every other input field the agent supplied is dropped before serialization. Full tool inputs survive only in the SDK JSONL session file, not in the YAML transcript.`,
+    `When the output is a scuttlerun YAML transcript, its header may carry a \`legend:\` mapping. The legend is authoritative: it says what each entry kind records, which fields each tool entry keeps, what the transcript leaves out, and what the footer flags mean. Read it before grading and follow it.`,
     ``,
-    `- \`Read\`, \`Write\`, \`Edit\` → \`path\` only. Content-bearing fields (\`content\`, \`old_string\`, \`new_string\`) are dropped: what was written or replaced cannot be verified from the YAML transcript alone — by design.`,
-    `- \`Bash\` → \`command\`. \`Glob\`, \`Grep\` → \`pattern\`.`,
-    `- \`TodoWrite\` → \`todos\`; \`TaskCreate\` → \`subject\`, \`description\`; \`TaskUpdate\` → \`task_id\` (plus \`status\` when supplied); \`TaskGet\` → \`task_id\`; \`TaskList\` → no extra fields.`,
-    `- Any other tool name → the full \`input\` mapping appears verbatim under an \`input:\` key.`,
+    `- A check whose evidence the legend says is dropped or not recorded cannot be verified from the YAML transcript alone. If no other evidence source is available (e.g. a file the agent wrote, readable at its recorded path), fail the check and explain that the transcript does not record that evidence by design.`,
+    `- Without a legend, make no assumption about which fields or events the output records beyond what it visibly contains. When a check depends on evidence the output may simply not capture, fail it and say what is missing.`,
   ].join('\n');
 }
 
@@ -68,11 +61,7 @@ export function buildGraderSystemPrompt(): string {
     `  - \`tool: Agent\` with \`input: { subagent_type: <id>, prompt: ..., ... }\` indicates the sub-agent \`<id>\` was dispatched.`,
     `  - \`tool: mcp__<server>__<tool>\` indicates the MCP tool \`<tool>\` on server \`<server>\` was called.`,
     `- Checks like "the \`X\` skill was loaded", "the Agent tool was dispatched with subagent_type \`Y\`", or "\`mcp__github__create_issue\` was called" are verifiable from the transcript. Search for the corresponding tool-call entry; cite it as evidence.`,
-    `- Slash-command invocations (e.g. \`/triage assess\`) are NOT separate transcript entries; the slash command appears as the prefix of the first \`user:\` message. A check like "the user invoked \`/foo\`" is verifiable by inspecting the first user message.`,
-    `- Hooks do NOT appear as transcript entries at all; they are observable only via their side effects: file mutations, blocked or absent tool calls, hook stdout strings surfaced elsewhere. A check on hook behavior must look for the side effect, not a \`tool: hook\` entry. If the only available evidence is "the hook ran", and no side effect is captured, the check is not verifiable from the transcript and should fail with that explanation.`,
     ``,
-    buildTranscriptFieldContractSection(),
-    ``,
-    `A check that asserts on written or replaced file content cannot be verified from the YAML transcript alone. If no other evidence source is available (e.g. the written file itself, readable at its recorded path), fail the check and explain that the transcript records only the \`path\` for Write/Edit by design.`,
+    buildTranscriptLegendSection(),
   ].join('\n');
 }

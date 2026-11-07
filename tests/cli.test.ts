@@ -342,6 +342,17 @@ describe('lintAction', () => {
     );
   });
 
+  it('passes --transcript-legend through to runLint', async () => {
+    mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
+    mockRunLint.mockResolvedValue({ results: [], checksWithIssues: 0, costUsd: 0 });
+    const lintCmd = makeProgramStub();
+    await lintAction('checks.yaml', { transcriptLegend: 'entries: {}' }, lintCmd);
+    expect(mockRunLint).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ transcriptLegend: 'entries: {}' }),
+    );
+  });
+
   it('aborts the controller and writes to stderr when SIGINT fires during lint', async () => {
     mockLoad.mockResolvedValue({ checks: [{ id: 'a', check: 'c' }] });
     let capturedController: AbortController | undefined;

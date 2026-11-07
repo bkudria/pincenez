@@ -65,13 +65,15 @@ describe('buildLintSystemPrompt', () => {
     expect(skillIndex).toBeGreaterThan(unverifiableIndex);
   });
 
-  it('documents the transcript field contract (lossy tool entries)', () => {
+  it('takes recording rules from a supplied transcript legend, with no copy of its own', () => {
     const sys = buildLintSystemPrompt();
-    expect(sys).toContain('## Transcript Field Contract');
-    expect(sys).toContain('old_string');
-    expect(sys).toContain('new_string');
-    expect(sys).toMatch(/dropped/i);
-    expect(sys).toContain('JSONL');
+    const rules = sys.slice(sys.indexOf('## Rules'));
+    expect(rules).toContain('Transcript Legend');
+    expect(rules).toMatch(/authoritative/i);
+    expect(sys).not.toContain('old_string');
+    expect(sys).not.toMatch(/hook/i);
+    // Without a legend, the analyst makes no recording-based claims.
+    expect(rules).toMatch(/without (a|the) legend/i);
   });
 
   it('forbids suggesting rewrites that assert on dropped transcript fields', () => {
@@ -209,6 +211,20 @@ describe('buildLintUserPrompt', () => {
     expect(prompt).toContain('## Session Tool Configuration');
     expect(prompt).toContain('Read');
     expect(prompt).toContain('TaskCreate');
+  });
+
+  it('includes the transcript legend section when a legend is provided', () => {
+    const legend = 'tool fields:\n  Bash: command\n';
+    const prompt = buildLintUserPrompt(baseCheck, undefined, undefined, legend);
+    expect(prompt).toContain('## Transcript Legend');
+    expect(prompt).toContain('  Bash: command');
+  });
+
+  it('omits the transcript legend section when no legend is provided', () => {
+    expect(buildLintUserPrompt(baseCheck)).not.toContain('## Transcript Legend');
+    expect(buildLintUserPrompt(baseCheck, undefined, undefined, '  ')).not.toContain(
+      '## Transcript Legend',
+    );
   });
 
   it('omits the session tool configuration section when tools are absent or empty', () => {

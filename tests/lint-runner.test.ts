@@ -208,6 +208,17 @@ describe('runLint', () => {
     );
   });
 
+  it('passes transcriptLegend option to linter', async () => {
+    mockLintCheck.mockResolvedValue({ id: 'a1', check: 'test', issues: [] });
+
+    await runLint({ checks: [{ id: 'a1', check: 'test' }] }, { transcriptLegend: 'entries: {}' });
+
+    expect(mockLintCheck).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ transcriptLegend: 'entries: {}' }),
+    );
+  });
+
   it('aggregates cost_usd into summary, rounded to 4 decimals, omitted when 0', async () => {
     mockLintCheck.mockImplementation(async (check) => ({
       id: check.id,
