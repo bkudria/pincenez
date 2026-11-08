@@ -55,7 +55,7 @@ export function buildGraderSystemPrompt(): string {
     ``,
     `## Transcript Awareness`,
     ``,
-    `- The output file is often a scuttlerun YAML transcript: a 'conversation:' sequence of typed entries (\`- user:\`, \`- assistant:\`, \`- thinking:\`, \`- tool: <Name>\`, \`- result: <Name>\`, \`- hook: <Event>\`, \`- oracle:\`); the legend names every kind and what it records.`,
+    `- The output file is often a scuttlerun YAML transcript: a 'conversation:' sequence of typed entries (\`- user:\`, \`- assistant:\`, \`- thinking:\`, \`- tool: <Name>\`, \`- result: <Name>\`, \`- hook: <Event>[:<Matcher>]\`, \`- oracle:\`); the legend names every kind and what it records.`,
     `- Plugin-component invocations appear as literal tool-call entries in that YAML and ARE observable evidence — treat them the same as any other quoted output, not as references to hidden internal state:`,
     `  - \`tool: Skill\` with \`input: { skill: <id>, ... }\` indicates the skill \`<id>\` was loaded.`,
     `  - \`tool: Agent\` with \`input: { subagent_type: <id>, prompt: ..., ... }\` indicates the sub-agent \`<id>\` was dispatched.`,

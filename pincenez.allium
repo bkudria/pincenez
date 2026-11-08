@@ -177,8 +177,8 @@ contract Judge {
         -- The judge is oriented to scuttlerun-style YAML transcripts:
         -- a 'conversation:' sequence of typed entries (- user:,
         -- - assistant:, - thinking:, - tool: <Name>, - result: <Name>,
-        -- - hook: <Event>, - oracle:); the transcript's legend names
-        -- every kind and what it records.
+        -- - hook: <Event>[:<Matcher>], - oracle:); the transcript's
+        -- legend names every kind and what it records.
         -- Plugin-component invocations appear as literal tool-call
         -- entries in that YAML and count as observable evidence the
         -- same as any other quoted output, not as references to hidden

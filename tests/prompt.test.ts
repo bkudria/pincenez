@@ -64,7 +64,7 @@ describe('buildGraderSystemPrompt', () => {
       sys.indexOf('## Transcript Awareness'),
       sys.indexOf('## Transcript Legend'),
     );
-    expect(awareness).toContain('`- hook:');
+    expect(awareness).toContain('`- hook: <Event>[:<Matcher>]`');
     expect(awareness).toContain('`- result:');
     expect(awareness).toMatch(/the legend names every kind/);
   });
