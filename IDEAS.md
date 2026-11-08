@@ -25,10 +25,12 @@ ordered by priority.
   text-only. Narrower since scuttlerun 0.5.0: a hook's stdout and stderr are
   now `hook:` transcript entries, so craboodle's hook example no longer
   routes evidence through a file. Narrower again since scuttlerun 0.6.0:
-  every Bash call's output, and any call's error, is a `result:` entry, so
-  the judge no longer needs the session log to see what a command printed.
-  Hook input (the JSON a hook receives) and files a hook writes still need
-  this channel.
+  every Bash call's output (its first and last 2000 characters when over
+  4000) and any call's error is a `result:` entry, so the judge usually sees
+  what a command printed without the session log. The session log still
+  holds the middle of long output, the later output of a command moved to
+  the background, and successful results of other tools. Hook input (the
+  JSON a hook receives) and files a hook writes still need this channel.
 - **Build before `npm publish`.** The release workflow's publish job runs
   `npm publish` right after `npm ci`, so `dist/` exists only once
   `prepublishOnly` builds it. npm checks `bin` before that script runs: the
