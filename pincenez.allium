@@ -200,8 +200,10 @@ contract Judge {
         -- which fields each tool entry keeps, what the transcript leaves
         -- out and what the footer flags mean, and the judge treats it as
         -- authoritative. pincenez embeds no copy of it: the prompt names
-        -- the entry kinds but never describes them, so only a new entry
-        -- kind needs a change here. A check whose evidence the legend
+        -- the entry kinds and the input fields of Skill and Agent tool
+        -- entries and describes nothing else, so only a new entry kind,
+        -- or a change to which fields Skill or Agent entries keep, needs
+        -- a change here. A check whose evidence the legend
         -- says is dropped or not recorded cannot be verified from the
         -- transcript alone; absent another evidence source, the judge
         -- fails it, explaining that the transcript does not record that
