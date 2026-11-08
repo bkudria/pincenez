@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/bkudria/pincenez/compare/v0.2.0...v0.3.0) (2026-11-08)
+
+
+### Features
+
+* take the transcript format from the transcript's own legend ([#72](https://github.com/bkudria/pincenez/issues/72)) ([b2ff22e](https://github.com/bkudria/pincenez/commit/b2ff22edd6667cb1cd71ec979b7892c8fdb66d21))
+
 ## [0.2.0](https://github.com/bkudria/pincenez/compare/v0.1.1...v0.2.0) (2026-10-28)
 
 
