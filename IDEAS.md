@@ -22,7 +22,10 @@ ordered by priority.
   note may point under the transcript's `project:` directory. Temp paths are
   unknowable at authoring time, so the convention leans on that key, which is
   scuttlerun knowledge living in a note; acceptable while pincenez stays
-  text-only.
+  text-only. Narrower since scuttlerun 0.5.0: a hook's stdout and stderr are
+  now `hook:` transcript entries, so craboodle's hook example no longer
+  routes evidence through a file. Hook input (the JSON a hook receives) and
+  files a hook writes still need this channel.
 
 ## Decided against
 
