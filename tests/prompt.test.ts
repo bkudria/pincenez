@@ -55,6 +55,7 @@ describe('buildGraderSystemPrompt', () => {
     // No per-tool field list or hard-coded claims about what transcripts omit.
     expect(sys).not.toContain('old_string');
     expect(sys).not.toMatch(/exit_code|is_error|PreToolUse|outcome/);
+    expect(sys.replaceAll('`- hook: <Event>[:<Matcher>]`', '')).not.toMatch(/hook/i);
     expect(sys).not.toMatch(/slash/i);
   });
 
