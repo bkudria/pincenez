@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/bkudria/pincenez/compare/v0.3.0...v0.3.1) (2026-11-10)
+
+
+### Bug Fixes
+
+* name hook and result entries among the transcript entry kinds ([#78](https://github.com/bkudria/pincenez/issues/78)) ([0a577cd](https://github.com/bkudria/pincenez/commit/0a577cd41528f604bf401a877e4922031d176676))
+
 ## [0.3.0](https://github.com/bkudria/pincenez/compare/v0.2.0...v0.3.0) (2026-11-08)
 
 
