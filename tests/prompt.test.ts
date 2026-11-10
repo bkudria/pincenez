@@ -54,8 +54,20 @@ describe('buildGraderSystemPrompt', () => {
     expect(sys.slice(legendIndex)).toMatch(/authoritative/i);
     // No per-tool field list or hard-coded claims about what transcripts omit.
     expect(sys).not.toContain('old_string');
-    expect(sys).not.toMatch(/hook/i);
+    expect(sys).not.toMatch(/exit_code|is_error|PreToolUse|outcome/);
+    expect(sys.replaceAll('`- hook: <Event>[:<Matcher>]`', '')).not.toMatch(/hook/i);
     expect(sys).not.toMatch(/slash/i);
+  });
+
+  it('names every scuttlerun entry kind, hook and result included, and defers their meaning to the legend', () => {
+    const sys = buildGraderSystemPrompt();
+    const awareness = sys.slice(
+      sys.indexOf('## Transcript Awareness'),
+      sys.indexOf('## Transcript Legend'),
+    );
+    expect(awareness).toContain('`- hook: <Event>[:<Matcher>]`');
+    expect(awareness).toContain('`- result:');
+    expect(awareness).toMatch(/the legend names every kind/);
   });
 
   it('gives the grader a generic fallback when the output has no legend', () => {

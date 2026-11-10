@@ -176,7 +176,9 @@ contract Judge {
     @guidance
         -- The judge is oriented to scuttlerun-style YAML transcripts:
         -- a 'conversation:' sequence of typed entries (- user:,
-        -- - assistant:, - thinking:, - tool: <Name>, - oracle:).
+        -- - assistant:, - thinking:, - tool: <Name>, - result: <Name>,
+        -- - hook: <Event>[:<Matcher>], - oracle:); the transcript's
+        -- legend names every kind and what it records.
         -- Plugin-component invocations appear as literal tool-call
         -- entries in that YAML and count as observable evidence the
         -- same as any other quoted output, not as references to hidden
@@ -197,12 +199,15 @@ contract Judge {
         -- SelfDescribingTranscript) saying what each entry kind records,
         -- which fields each tool entry keeps, what the transcript leaves
         -- out and what the footer flags mean, and the judge treats it as
-        -- authoritative. pincenez embeds no copy of it, so a change to
-        -- the transcript format needs no change here. A check whose
-        -- evidence the legend says is dropped or not recorded cannot be
-        -- verified from the transcript alone; absent another evidence
-        -- source, the judge fails it, explaining that the transcript
-        -- does not record that evidence by design. Without a legend, the
+        -- authoritative. pincenez embeds no copy of it: the prompt names
+        -- the entry kinds and the input fields of Skill and Agent tool
+        -- entries and describes nothing else, so only a new entry kind,
+        -- or a change to which fields Skill or Agent entries keep, needs
+        -- a change here. A check whose evidence the legend
+        -- says is dropped or not recorded cannot be verified from the
+        -- transcript alone; absent another evidence source, the judge
+        -- fails it, explaining that the transcript does not record that
+        -- evidence by design. Without a legend, the
         -- judge assumes nothing about what the output records beyond
         -- what it visibly contains, and fails a check whose evidence the
         -- output may simply not capture, saying what is missing.
