@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/bkudria/pincenez/compare/v0.3.1...v0.4.0) (2026-11-20)
+
+
+### Features
+
+* let a check's note name a file for the judge to read ([#83](https://github.com/bkudria/pincenez/issues/83)) ([a4c3e4a](https://github.com/bkudria/pincenez/commit/a4c3e4a78b590b937185f53b2fd0855d9cf79e32))
+
 ## [0.3.1](https://github.com/bkudria/pincenez/compare/v0.3.0...v0.3.1) (2026-11-10)
 
 
