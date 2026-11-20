@@ -7,32 +7,6 @@ and dialogs on 2026-11-04 and the fabrica eval suite written the same day;
 scuttlerun's IDEAS.md holds the transcript changes these pair with. Not
 ordered by priority.
 
-- **State the judge's file-reading channel.** The ReadOnlyAccess invariant
-  already lets the judge read the output and the files it references, the
-  grader grants the output's directory, and the prompt says so; but `--help`
-  says nothing about reading files or how to name evidence, no test pins
-  `tools: ['Read']` or the permission mode, and the invariant covers files
-  the output references, not paths a check note names. A fabrica check
-  pointed at a hook log outside the output directory and the judge read it,
-  through bypassPermissions rather than the directory grant — a hardened
-  grader would silently lose that. Shape: phrase the guarantee by capability
-  (the judge may read the output's directory and any absolute path the output
-  or a check note names), pin tools and permission mode in a test, and
-  document in `--help` how to name evidence; craboodle's help then says a
-  note may point under the transcript's `project:` directory. Temp paths are
-  unknowable at authoring time, so the convention leans on that key, which is
-  scuttlerun knowledge living in a note; acceptable while pincenez stays
-  text-only. Narrower since scuttlerun 0.5.0: a hook's stdout and stderr are
-  now `hook:` transcript entries, so craboodle's hook example no longer
-  routes evidence through a file. Narrower again since scuttlerun 0.6.0:
-  every Bash call's output (its first and last 2000 characters when it is
-  over 4000) and any call's error is a `result:` entry, so the judge
-  usually sees what a command printed without the session log. The session
-  log still holds the middle of long output, the later output of a command
-  moved to the background, and successful results of other tools. Hook
-  input (the JSON a hook receives) and files a hook writes still need this
-  channel.
-
 ## Decided against
 
 - **A probe artifact layout graded by pincenez** (2026-11-04). A fixed

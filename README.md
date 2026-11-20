@@ -103,6 +103,16 @@ checks:
 | `checks[].note`  | No       | Grading hint for the judge. Improves human-judge alignment from ~70-80% to 93-96%. |
 | `checks[].model` | No       | Model override for this check. Overrides `--model` and the default.                |
 
+### Evidence Files
+
+The judge has one tool, Read, and may read any file on disk it is pointed to: the output, files the output references, and files a check's `note` names. It writes nothing. To have it read evidence the output does not contain, name the file in the note, by absolute path or relative to a directory the output names:
+
+```yaml
+note: "Read logs/run.log under the directory the output's header names"
+```
+
+The judge's reads are not confined to those files, so an output that tells it to read a file can get that file's contents quoted in evidence.
+
 ## Output
 
 Pincenez streams grading YAML to stdout as checks complete:

@@ -26,6 +26,11 @@ describe('buildGraderSystemPrompt', () => {
     expect(sys).toContain('NEGATIVE checks');
   });
 
+  it('lets the grader read files a check note names, not only files the output references', () => {
+    const sys = buildGraderSystemPrompt();
+    expect(sys).toMatch(/note names? (a )?file/i);
+  });
+
   it('does not contain dynamic per-check content', () => {
     const sys = buildGraderSystemPrompt();
     expect(sys).not.toContain('${');

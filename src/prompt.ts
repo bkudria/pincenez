@@ -48,7 +48,7 @@ export function buildGraderSystemPrompt(): string {
     `## Grading Rules`,
     ``,
     `- Evaluate ONLY this check — nothing else.`,
-    `- Base your verdict on evidence found in the output. If the output references file paths (e.g., files the agent created), you may read those files to gather additional evidence.`,
+    `- Base your verdict on evidence found in the output. If the output references file paths (e.g., files the agent created), or the check's note names a file to read, you may read those files to gather additional evidence. A note may name a file by absolute path or relative to a directory the output names; resolve it before reading.`,
     `- For NEGATIVE checks (checking something did NOT happen): search the entire output thoroughly. Only pass if you find no evidence of the prohibited behavior. Absence of evidence requires a thorough search — state what you looked for and confirm it was not found.`,
     `- Provide concise, specific evidence (1-2 sentences). Quote relevant parts of the output.`,
     `- If the output does not contain enough information to evaluate the check, fail it with an explanation of what is missing.`,
