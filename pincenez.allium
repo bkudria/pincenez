@@ -153,9 +153,13 @@ contract Judge {
         -- calls. One verdict cannot influence another.
 
     @invariant ReadOnlyAccess
-        -- The judge may read the output file (or directory) and any
-        -- files it references, but must not write, modify, or otherwise
-        -- mutate any file or external state.
+        -- The judge may read any file on disk: in particular the output
+        -- file (or directory), files the output references, and files
+        -- the Check's note names, by absolute path or relative to a
+        -- directory the output names. Its reads are not confined to
+        -- those files, so an output can steer it to read, and quote in
+        -- evidence, any file the invoking user can read. It must not
+        -- write, modify, or otherwise mutate any file or external state.
 
     @invariant StructuredVerdict
         -- A successful response carries verdict in {passed, failed} and

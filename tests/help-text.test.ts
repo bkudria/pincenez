@@ -18,3 +18,13 @@ describe('HELP_TEXT — verdict non-determinism disclosure', () => {
     expect(help).toContain('temperature');
   });
 });
+
+describe('HELP_TEXT — naming evidence files', () => {
+  const help = HELP_TEXT.toLowerCase();
+
+  it('says the judge can read files and how a note names one', () => {
+    expect(help).toContain('read-only');
+    expect(help).toContain('absolute path');
+    expect(help).toMatch(/relative to a directory the output names/);
+  });
+});

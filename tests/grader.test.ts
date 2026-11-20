@@ -232,6 +232,22 @@ describe('gradeCheck', () => {
     );
   });
 
+  it('gives the judge only the Read tool, with permissions bypassed so it can read any path it is pointed to', async () => {
+    mockQuery.mockReturnValue(asyncMessages([resultMessage('{"pass": true, "evidence": "ok"}')]));
+
+    await gradeCheck(testCheck, '/var/folders/xx/rep-1/output.yaml');
+
+    expect(mockQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({
+          tools: ['Read'],
+          permissionMode: 'bypassPermissions',
+          allowDangerouslySkipPermissions: true,
+        }),
+      }),
+    );
+  });
+
   it('grants Read access to the output file directory via additionalDirectories', async () => {
     mockQuery.mockReturnValue(asyncMessages([resultMessage('{"pass": true, "evidence": "ok"}')]));
 

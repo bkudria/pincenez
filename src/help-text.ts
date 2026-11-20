@@ -22,6 +22,18 @@ Checks File Schema (YAML):
     checks[].note       Grading hint. Improves human-judge alignment significantly.
     checks[].model      Model override. Overrides --model and the default.
 
+Evidence Files:
+  The judge has one tool, Read, and may read any file on disk it is
+  pointed to: the output, files the output references, and files a
+  check's note names. It writes nothing (read-only). To have it read
+  evidence the output does not contain, name the file in the note, by
+  absolute path or relative to a directory the output names:
+
+    note: "Read logs/run.log under the directory the output's header names"
+
+  Its reads are not confined to those files: output that tells the judge
+  to read a file can get that file's contents quoted in evidence.
+
 Output Format:
   Grading YAML is streamed to stdout as checks complete (arrival order):
 
