@@ -15,5 +15,6 @@ ordered by priority.
   craboodle. Rejected: pincenez already accepts any text, so no contract was
   ever needed; rendering facts are exact assertions better served by scrut
   interactive ASSERT or grep than by an LLM judge; the per-version re-run is a
-  scrut document (see scuttlerun's IDEAS.md). Only the per-step artifact
-  layout survives, as a helper of the tmux driver's screen verb.
+  scrut document (see carapace's IDEAS.md; carapace is the hook-probe
+  fixture beside the three tools). Only per-step screen captures survive,
+  kept as text in carapace's `findings/screens/`.
